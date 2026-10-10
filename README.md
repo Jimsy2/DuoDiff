@@ -57,5 +57,5 @@ Any suggestions? Open an issue on [GitHub](https://github.com/Jimsy2/DuoDiff/iss
 
 ---
 
-**v0.6a** — updated Meta-Data and translated some comments
-**v0.6** — Initial public release
+**v0.6a** — updated Meta-Data and translated some comments  
+**v0.6** — Initial public release  
