@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.7d - Differences highlighter for text</title>
+<title>DuoDiff v0.8 - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -78,21 +78,21 @@ body {
   font-size: 14px;
 }
 
-.status-column {
+.status-item {
   flex: 1;
   padding: 0 12px;
   white-space: nowrap;
 }
 
-.status-column.left {
+.status-item.left {
   text-align: left;
 }
 
-.status-column.middle {
+.status-item.middle {
   text-align: center;
 }
 
-.status-column.right {
+.status-item.right {
   text-align: right;
 }
 
@@ -123,13 +123,13 @@ button.active {
   margin-left: auto;
 }
 
-.editor-table {
+.panel-frame {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.editor-cell {
+.text-panel {
   width: 50%;
   vertical-align: top;
   padding: 8px;
@@ -153,7 +153,8 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v0.7d</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v0.8</div>
+  <button onclick="clearPanels()">Clear panels</button>
   <div class="toolbar-spacer"></div>
   <button id="toggle-lines-btn"
           onclick="toggleLineNumbers()"
@@ -168,27 +169,27 @@ mark.mod {
 </div>
 
 <div class="status-bar">
-  <div class="status-column left">
+  <div class="status-item left">
     <span id="left-line-count">Lines: 0</span>
   </div>
-  <div class="status-column middle">
+  <div class="status-item middle">
     <span id="mod-count">Highlights: 0</span>
   </div>
-  <div class="status-column right">
+  <div class="status-item right">
     <span id="right-line-count">Lines: 0</span>
   </div>
 </div>
 
 
-<table class="editor-table">
+<table class="panel-frame">
 <tr>
-<td id="left-column" class="editor-cell" contenteditable="true" spellcheck="false">Left column
+<td id="left-panel" class="text-panel" contenteditable="true" spellcheck="false">Left panel
 Drag & drop a text file here
 or paste/edit text directly
 
 Here is text
 Another line</td>
-<td id="right-column" class="editor-cell" contenteditable="true" spellcheck="false">Right column
+<td id="right-panel" class="text-panel" contenteditable="true" spellcheck="false">Right panel
 Drag & drop a text file here
 or paste/edit text directly
 
@@ -198,6 +199,7 @@ This is an additional line.
 </td>
 </tr>
 </table>
+
 
 <script id="app-script">
 // Global state
@@ -238,10 +240,37 @@ function renumberLines(cell) {
   return lines.length; // Gibt die Gesamtzeilenanzahl zurück
 }
 
+
+function clearPanels() {
+  const leftPanel = document.getElementById('left-panel');
+  const rightPanel = document.getElementById('right-panel');
+  
+  leftPanel.innerText = '';
+  rightPanel.innerText = '';
+  
+  // Reset highlighting if active
+  if (highlightingActive) {
+    const btn = document.getElementById('toggle-highlight-btn');
+    highlightingActive = false;
+    btn.innerText = "Highlight differences: OFF";
+    btn.classList.remove('active');
+  }
+  
+  // Reset line numbers if active
+  if (lineNumbersActive) {
+    const btn = document.getElementById('toggle-lines-btn');
+    lineNumbersActive = false;
+    btn.innerText = "Line numbers: OFF";
+    btn.classList.remove('active');
+  }
+  
+  updateStatusBar();
+}
+
 	
 function updateLineCount(side,count) {
   if (count === undefined ) {
-    const oneCol = document.getElementById(side+'-column');
+    const oneCol = document.getElementById(side+'-panel');
     count = getLinesFromCell(oneCol).length;
 	}
   document.getElementById(side+'-line-count').innerText = `Lines: ${count}`;
@@ -263,8 +292,8 @@ function updateStatusBar() {
 
 	
 function renumberBoth() {
-  const leftCol = document.getElementById('left-column');
-  const rightCol = document.getElementById('right-column');
+  const leftCol = document.getElementById('left-panel');
+  const rightCol = document.getElementById('right-panel');
   lineNumbersActive = true;
   // Pass the return line counts ​​directly to the status bar.
   updateLineCount('left',renumberLines(leftCol));
@@ -299,8 +328,8 @@ function toggleLineNumbers() {
 function stripNumbers() {
   // In stripNumbers(), we ensure that the toggle state remains synchronized.
   // ... selectively deletes ONLY generated line numbers with the format "n› "
-  const leftCol = document.getElementById('left-column');
-  const rightCol = document.getElementById('right-column');
+  const leftCol = document.getElementById('left-panel');
+  const rightCol = document.getElementById('right-panel');
   
   const removeNum = cell => {
     const lines = getLinesFromCell(cell);
@@ -408,8 +437,8 @@ function findLongestCommonSubstr(str1, str2) {
 function highlightDiff() {
   // stripNumbers() is no longer called here, as line numbers have been ignored since version 0.6.
 
-  const leftCol = document.getElementById('left-column');
-  const rightCol = document.getElementById('right-column');
+  const leftCol = document.getElementById('left-panel');
+  const rightCol = document.getElementById('right-panel');
 
   // Remove previous HTML markers (<mark>)
   leftCol.innerText = leftCol.innerText;
@@ -488,8 +517,8 @@ function toggleHighlight() {
 
 
 function stripHighlights() {
-  const leftCol = document.getElementById('left-column');
-  const rightCol = document.getElementById('right-column');
+  const leftCol = document.getElementById('left-panel');
+  const rightCol = document.getElementById('right-panel');
 
   // Remove HTML markup and keep plain text
   leftCol.innerText = leftCol.innerText;
@@ -572,7 +601,7 @@ document.addEventListener('drop', function (e) {
     const text = event.target.result;
     const isLeft = e.clientX < window.innerWidth / 2;
     const side = isLeft ? 'left' : 'right';
-    const targetCol = document.getElementById(`${side}-column`);
+    const targetCol = document.getElementById(`${side}-panel`);
 
     targetCol.innerText = text;
 
