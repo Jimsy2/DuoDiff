@@ -12,12 +12,6 @@ A single-file HTML page for comparing two text files side-by-side with visual di
  - **Dark theme** — Easy on the eyes at night
  - **Drag 'n Drop** file upload support
 
-## TO DO ##
-
- - **Light theme** — For working in daylight
- - **copy/share** buttons
- - dark/light styling
-
 ## Quick Start
 
 👉 **[Open DuoDiff Live](https://jimsy2.github.io/DuoDiff/)**
@@ -51,11 +45,17 @@ No installation needed. Just open the link and start comparing!
 - **License:** GPL-2.0
 - **Author:** Dirk Eismann
 
+## TO DO ##
+
+ - **Light theme** — For working in daylight
+ - **copy/share** buttons
+ - dark/light styling
+
 ## Feedback & Ideas
 
 Any suggestions? Open an issue on [GitHub](https://github.com/Jimsy2/DuoDiff/issues).
 
 ---
-
+**v0.7** — added Drag 'n Drop file upload, turned Highlighting into a ON/OFF-Button
 **v0.6a** — updated Meta-Data and translated some comments  
 **v0.6** — Initial public release  
