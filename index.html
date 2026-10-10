@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.7 - Differences highlighter for text</title>
+<title>DuoDiff v0.7a - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -263,6 +263,14 @@ function toggleLineNumbers() {
     renumberBoth();
     btn.innerText = "Line numbers: ON";
     btn.classList.add('active');
+  }
+  // Turn OFF highlighting if it's active
+  if (highlightingActive) {
+    const highlightBtn = document.getElementById('toggle-highlight-btn');
+    stripHighlights();
+    highlightingActive = false;
+    highlightBtn.innerText = "Highlight differences: OFF";
+    highlightBtn.classList.remove('active');
   }
 }
 
