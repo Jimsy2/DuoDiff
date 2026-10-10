@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.7c - Differences highlighter for text</title>
+<title>DuoDiff v0.7d - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -153,7 +153,7 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v0.7c</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v0.7d</div>
   <div class="toolbar-spacer"></div>
   <button id="toggle-lines-btn"
           onclick="toggleLineNumbers()"
@@ -238,29 +238,37 @@ function renumberLines(cell) {
   return lines.length; // Gibt die Gesamtzeilenanzahl zurück
 }
 
+	
+function updateLineCount(side,count) {
+  if (count === undefined ) {
+    const oneCol = document.getElementById(side+'-column');
+    count = getLinesFromCell(oneCol).length;
+	}
+  document.getElementById(side+'-line-count').innerText = `Lines: ${count}`;
+}
 
-function updateStatusBar(countLeft, countRight) {
-  // If no values ​​were passed, we read the lines from the DOM.
-  if (countLeft === undefined || countRight === undefined) {
-    const leftCol = document.getElementById('left-column');
-    const rightCol = document.getElementById('right-column');
-    countLeft = getLinesFromCell(leftCol).length;
-    countRight = getLinesFromCell(rightCol).length;
-  }
+	
+function updateHighlightStatus() {
   const highlights = document.querySelectorAll('mark.mod').length;
-
-  document.getElementById('left-line-count').innerText = `Lines: ${countLeft}`;
-  document.getElementById('right-line-count').innerText = `Lines: ${countRight}`;
   document.getElementById('mod-count').innerText = `Highlights: ${highlights}`;
 }
 
+	
+// comfort function for complete status reset
+function updateStatusBar() {
+  updateLineCount('left');
+  updateLineCount('right');
+  updateHighlightStatus();
+}
 
+	
 function renumberBoth() {
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
   lineNumbersActive = true;
-  // Pass the return values ​​directly to the display function.
-  updateStatusBar( renumberLines(leftCol), renumberLines(rightCol) );
+  // Pass the return line counts ​​directly to the status bar.
+  updateLineCount('left',renumberLines(leftCol));
+  updateLineCount('right',renumberLines(rightCol));
 }
 
 
@@ -289,7 +297,7 @@ function toggleLineNumbers() {
 
 
 function stripNumbers() {
-// In stripNumbers(), we ensure that the toggle state remains synchronized.
+  // In stripNumbers(), we ensure that the toggle state remains synchronized.
   // ... selectively deletes ONLY generated line numbers with the format "n› "
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
@@ -560,18 +568,17 @@ document.addEventListener('drop', function (e) {
 
   const reader = new FileReader();
 
-reader.onload = function (event) {
+  reader.onload = function (event) {
     const text = event.target.result;
+    const isLeft = e.clientX < window.innerWidth / 2;
+    const side = isLeft ? 'left' : 'right';
+    const targetCol = document.getElementById(`${side}-column`);
 
-    const leftCol = document.getElementById('left-column');
-    const rightCol = document.getElementById('right-column');
+    targetCol.innerText = text;
 
     // Assignment of the drop zone based on the screen half
-    if (e.clientX < window.innerWidth / 2) {
-      leftCol.innerText = text;
-    } else {
-      rightCol.innerText = text;
-    }
+    const count = lineNumbersActive ? renumberLines(targetCol) : undefined;
+    updateLineCount(side, count);
 
     // If highlighting is active, turn it off
     if (highlightingActive) {
@@ -580,11 +587,10 @@ reader.onload = function (event) {
       highlightingActive = false;
       btn.innerText = "Highlight differences: OFF";
       btn.classList.remove('active');
+    } else {
+      updateHighlightStatus();
     }
-
-    updateStatusBar();
   };
-
   reader.onerror = function () {
     alert('Error reading file. Make sure it is a valid text file.');
   };
