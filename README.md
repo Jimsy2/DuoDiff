@@ -1,4 +1,4 @@
-# DuoDiff 0.6a ##
+# DuoDiff 0.7 ##
 A single-file HTML page for comparing two text files side-by-side with visual difference highlighting.
 
 ## Features ##
@@ -10,13 +10,13 @@ A single-file HTML page for comparing two text files side-by-side with visual di
  - **Local & safe** — Runs entirely in your browser, no data sent anywhere
  - **One-click save** — Save the current state as an HTML file (Ctrl+S)
  - **Dark theme** — Easy on the eyes at night
+ - **Drag 'n Drop** file upload support
 
 ## TO DO ##
 
  - **Light theme** — For working in daylight
- - copy/share buttons
- - file upload support
- - simple dark/light styling
+ - **copy/share** buttons
+ - dark/light styling
 
 ## Quick Start
 
