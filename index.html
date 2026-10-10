@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.7a - Differences highlighter for text</title>
+<title>DuoDiff v0.7b - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -38,19 +38,33 @@ body {
   padding-bottom: 52px; /* keep room for the fixed status bar */
 }
 
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;   
+  display: flex;  
+  gap: 10px;
+  align-items: center;
+  background-color: var(--panel-bg); 
+  padding: 12px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+  border-top: none;
+}
+
 .status-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 1000;
   height: 40px;
   display: flex;
   align-items: center;
   background-color: var(--panel-bg);
   border-top: 1px solid var(--border-color);
   color: #aaa;
-  font-size: 12px;
-  z-index: 1000;
+  font-size: 14px;
 }
 
 .status-column {
@@ -71,26 +85,12 @@ body {
   text-align: right;
 }
 
-.toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 999;   
-  display: flex;  
-  gap: 10px;
-  align-items: center;
-  background-color: var(--panel-bg); 
-  padding: 12px 12px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border-color);
-  border-top: none;
-}
-
 button {
   background: var(--accent-color);
   color: #fff;
   border: none;
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: 16px;
   cursor: pointer;
   border-radius: 2px;
 }
