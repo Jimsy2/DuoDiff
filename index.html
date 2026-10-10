@@ -74,7 +74,6 @@ button.active {
   font-weight: bold;
 }
 
-/* this should be renamed to num-highlights to avoid confusion with the class of the same name */
 #mod-count {
   margin-left: auto;
 }
@@ -159,7 +158,7 @@ function renumberLines(cell) {
 }
 
 function updateLineDiffDisplay(countLeft, countRight) {
-  // Falls keine Werte übergeben wurden, lesen wir die Zeilen aus dem DOM ab
+  // If no values ​​were passed, we read the lines from the DOM.
   if (countLeft === undefined || countRight === undefined) {
     const leftCol = document.getElementById('left-column');
     const rightCol = document.getElementById('right-column');
@@ -175,7 +174,7 @@ function updateLineDiffDisplay(countLeft, countRight) {
 function renumberBoth() {
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
-  // Direkt die Rückgabewerte an die Anzeige-Funktion durchreichen
+  // Pass the return values ​​directly to the display function.
   updateLineDiffDisplay(
     renumberLines(leftCol),
     renumberLines(rightCol)
@@ -190,13 +189,13 @@ function toggleLineNumbers() {
   const btn = document.getElementById('toggle-lines-btn');
 
   if (lineNumbersActive) {
-    // Wenn aktiv: Nummern und Highlights entfernen
+    // If active: Remove numbers and highlights
     stripNumbers();
     lineNumbersActive = false;
     btn.innerText = "Line numbers: OFF";
     btn.classList.remove('active');
   } else {
-    // Wenn inaktiv: Nummern hinzufügen
+    // If inactive: Add numbers
     renumberBoth();
     lineNumbersActive = true;
     btn.innerText = "Line numbers: ON";
@@ -204,46 +203,45 @@ function toggleLineNumbers() {
   }
 }
 
-// In stripNumbers() stellen wir sicher, dass der Toggle-Zustand synchron bleibt
+// In stripNumbers(), we ensure that the toggle state remains synchronized.
 function stripNumbers() {
-  // .. löscht gezielt NUR generierte Zeilennummern mit dem Format "n› "
+  // ... selectively deletes ONLY generated line numbers with the format "n› "
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
   
   const removeNum = cell => {
     const lines = getLinesFromCell(cell);
-    // RegEx:^\d+›\s* sucht am Zeilenanfang nach Zahlen gefolgt von › und Leerzeichen
+    // RegEx:^\d+›\s* searches at the beginning of the line for numbers followed by › and a space
     const clean = lines.map(l => l.replace(/^\d+› /, '')).join('\n');
     cell.innerText = clean;
   };
   removeNum(leftCol);
   removeNum(rightCol);
-  // Status und Button-Text zurücksetzen
+  // Reset status and button text
   lineNumbersActive = false;
   const btn = document.getElementById('toggle-lines-btn');
   if (btn) {
     btn.innerText = "Line numbers: OFF";
     btn.classList.remove('active');
   }
-
-  // Zähler aktualisieren
+  // Update counter
   document.getElementById('mod-count').innerText = 'Highlights: n/a';
   updateLineDiffDisplay();
 }
 
 
 function diffInline(str1, str2) {
-  // Rekursives Diff mit Laufzeit-Schutz für sehr lange Quellcode-Zeilen
-  // 1. Abbruchbedingungen der Rekursion: Identische Strings oder leere Seiten ...
+  // Recursive diff with runtime protection for very long source code lines
+  // 1. Recursion termination conditions: Identical strings or empty pages ...
   if (str1 === str2) return { left: escapeHtml(str1), right: escapeHtml(str2) };
   if (!str1) return { left: '', right: `<mark class="mod">${escapeHtml(str2)}</mark>` };
   if (!str2) return { left: `<mark class="mod">${escapeHtml(str1)}</mark>`, right: '' };
 
-  /* 2. Bei sehr langen Zeilen (> 300 Zeichen) ohne schnelle Entsprechung
-     brechen wir das feine Diff ab, um ein Einfrieren des Browsers zu verhindern. */
+  // 2. For very long lines (> 300 characters) without a quick match,
+  // we abort the fine-grained diff to prevent the browser from freezing.
   const MAX_DIFF_LEN = 300;
   if (str1.length > MAX_DIFF_LEN || str2.length > MAX_DIFF_LEN) {
-    // Versuche nur am Anfang/Ende gemeinsame Zeichen zu finden ...
+    // Try to find common characters only at the beginning or end ...
     let prefixLen = 0;
     while (prefixLen < str1.length && prefixLen < str2.length && str1[prefixLen] === str2[prefixLen]) {
       prefixLen++;
@@ -270,9 +268,9 @@ function diffInline(str1, str2) {
     };
   }
 
-  // 3. Normales LCS (Längste gemeinsame Zeichenkette) für kurze/mittlere Strings
+  // 3. Standard LCS (Longest Common Substring) for short/medium-length strings
   let lcs = findLongestCommonSubstr(str1, str2);
-  // Wenn keine Mindest-Gemeinsamkeit existiert (z.B. < 2 Zeichen): Gesamten Rest als abweichend markieren
+  // If no minimum commonality exists (e.g., < 2 characters): Mark the entire remainder as deviating.
   if (lcs.length < 2) {
     return {
       left: `<mark class="mod">${escapeHtml(str1)}</mark>`,
@@ -293,7 +291,7 @@ function diffInline(str1, str2) {
 
 
 function findLongestCommonSubstr(str1, str2) {
-  // Helper function: Optimierte LCS-Suche mit Early-Exit
+  // Helper function: Optimized LCS search with early exit
   let longest = "";
 
   for (let i = 0; i < str1.length; i++) {
@@ -306,7 +304,7 @@ function findLongestCommonSubstr(str1, str2) {
       
       if (sub.length > longest.length) {
         longest = sub;
-        // Early Exit: Wenn ein Anker von 15+ Zeichen gefunden wurde, reicht das aus ...
+        // Early Exit: If an anchor of 15+ characters is found, that should be sufficient ...
         if (longest.length >= 15) return longest;
       }
     }
@@ -316,39 +314,38 @@ function findLongestCommonSubstr(str1, str2) {
 
 
 function highlightDiff() {
-  /* stripNumbers() wird hier nicht mehr aufgerufen, da Zeilennummern 
-     seit Versiom 0.6 ignoriert werden */
+  // stripNumbers() is no longer called here, as line numbers have been ignored since version 0.6.
 
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
 
-  // Vorherige HTML-Markierungen (<mark>) entfernen
+  // Remove previous HTML markers (<mark>)
   leftCol.innerText = leftCol.innerText;
   rightCol.innerText = rightCol.innerText;
 
-  // Hilfsfunktion zum Trennen von Präfix und eigentlichem Inhalt
+  // Helper function to separate the prefix from the actual content
   const parseLine = line => {
     if (lineNumbersActive) {
-      // Nur wenn die Nummerierung aktiv ist, trennen wir das "n› "-Präfix ab
+      // We only split off the "n› " prefix if numbering is active.
       const match = line.match(/^(\d+› )(.*)/);
       return {
         prefix: match ? match[1] : '',
         content: match ? match[2] : line
       };
     }
-    // Wenn nicht aktiv, ist die ganze Zeile der reine Inhalt
+    // When not active, the prefix for the line number is empty ...
     return { prefix: '', content: line };
   };
 
   const linesL = getLinesFromCell(leftCol).map(parseLine);
   const linesR = getLinesFromCell(rightCol).map(parseLine);
 
-  // Helper zum Vergleichen einer Spalte gegen die Zielspalte
+  // Helper for comparing a column against the target column
   const processColumn = (sourceLines, targetLines, isLeftColumn) => {
     return sourceLines.map((item, idx) => {
       const targetItem = targetLines[idx] || null;
 
-      // Wenn die Zeilen sich unterscheiden ...
+      // If the lines differ ...
       if (targetItem !== null && item.content !== targetItem.content) {
         const strLeft = isLeftColumn ? item.content : targetItem.content;
         const strRight = isLeftColumn ? targetItem.content : item.content;
@@ -356,19 +353,19 @@ function highlightDiff() {
         const inlineResult = diffInline(strLeft, strRight);
         const highlighted = isLeftColumn ? inlineResult.left : inlineResult.right;
 
-        // Gibt die Zeilennummer (falls vorhanden) vor der Markierung aus
+        // Outputs the line number (if available) before the marker.
         return escapeHtml(item.prefix) + highlighted;
       }
-      // Bei Identität oder fehlender Gegenzeile: Eigener Text unverändert ...
+      // In the event of identity or a missing corresponding line: text stays unchanged ...
       return escapeHtml(item.prefix + item.content);
     }).join('\n');
   };
 
-  // Beide Spalten mit dem korrekten Flag verarbeiten
+  // Process both columns with the correct flag.
   leftCol.innerHTML = processColumn(linesL, linesR, true);
   rightCol.innerHTML = processColumn(linesR, linesL, false);
 
-  // Counter aktualisieren
+  // Update counter
   const totalDiffs = document.querySelectorAll('mark.mod').length;
   document.getElementById('mod-count').innerText = `Highlights: ${totalDiffs}`;
   updateLineDiffDisplay();
@@ -381,7 +378,7 @@ function escapeHtml(str) {
 
 	
 function saveDocument() {
-// ... sichert den aktuellen DOM-Zustand
+// ... saves the current DOM state
   const docHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
   const blob = new Blob([docHTML], { type: 'text/html' });
   const a = document.createElement('a');
@@ -391,7 +388,7 @@ function saveDocument() {
   URL.revokeObjectURL(a.href);
 }
 
-// Strg+S abfangen ...
+// Intercept Ctrl+S ...
 document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
