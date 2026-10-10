@@ -67,7 +67,7 @@ button.active {
   background-color: #16825d; /* green color for active buttons */
 }
 	
-.diff-counter {
+.diff-count {
   margin-left: 10px;
   font-size: 13px;
   color: #aaa;
@@ -75,7 +75,7 @@ button.active {
 }
 
 /* this should be renamed to num-highlights to avoid confusion with the class of the same name */
-#diff-counter {
+#mod-count {
   margin-left: auto;
 }
 
@@ -116,8 +116,8 @@ mark.mod {
 	</button>
 	<button onclick="highlightDiff()">Highlight differences</button>
   <button onclick="saveDocument()">Save current state (Ctrl+S)</button>
-  <span id="diff-counter" class="diff-counter">Highlights: n/a</span>
-  <span id="diff-number-of-lines" class="diff-counter">Difference in number of lines: n/a</span>
+  <span id="mod-count" class="diff-count">Highlights: n/a</span>
+  <span id="diff-number-of-lines" class="diff-count">Difference in number of lines: n/a</span>
 </div>
 
 <table class="editor-table">
@@ -227,7 +227,7 @@ function stripNumbers() {
   }
 
   // Zähler aktualisieren
-  document.getElementById('diff-counter').innerText = 'Highlights: n/a';
+  document.getElementById('mod-count').innerText = 'Highlights: n/a';
   updateLineDiffDisplay();
 }
 
@@ -370,7 +370,7 @@ function highlightDiff() {
 
   // Counter aktualisieren
   const totalDiffs = document.querySelectorAll('mark.mod').length;
-  document.getElementById('diff-counter').innerText = `Highlights: ${totalDiffs}`;
+  document.getElementById('mod-count').innerText = `Highlights: ${totalDiffs}`;
   updateLineDiffDisplay();
 }
 
