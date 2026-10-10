@@ -167,17 +167,22 @@ mark.mod {
 </div>
 
 
-
 <table class="editor-table">
 <tr>
-<td id="left-column" class="editor-cell" contenteditable="true" spellcheck="false"
->Left column
+<td id="left-column" class="editor-cell" contenteditable="true" spellcheck="false">Left column
+Drag & drop a text file here
+or paste/edit text directly
+
 Here is text
 Another line</td>
-<td id="right-column" class="editor-cell" contenteditable="true" spellcheck="false"
->Right column
+<td id="right-column" class="editor-cell" contenteditable="true" spellcheck="false">Right column
+Drag & drop a text file here
+or paste/edit text directly
+
 Here is modified text
-Another line</td>
+Another line
+This is an additional line.
+</td>
 </tr>
 </table>
 
@@ -567,6 +572,9 @@ reader.onload = function (event) {
 
   reader.readAsText(file);
 });
+
+// Initialize status bar on page load
+updateStatusBar();
 </script>
 
 </body>
