@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.6b - Differences highlighter for text</title>
+<title>DuoDiff v0.7 - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -35,6 +35,40 @@ body {
   line-height: 1.6;
   margin: 0;
   padding: 0 15px 15px 15px;
+  padding-bottom: 52px; /* keep room for the fixed status bar */
+}
+
+.status-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  background-color: var(--panel-bg);
+  border-top: 1px solid var(--border-color);
+  color: #aaa;
+  font-size: 12px;
+  z-index: 1000;
+}
+
+.status-column {
+  flex: 1;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.status-column.left {
+  text-align: left;
+}
+
+.status-column.middle {
+  text-align: center;
+}
+
+.status-column.right {
+  text-align: right;
 }
 
 .toolbar {
@@ -108,16 +142,31 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-	<button id="toggle-lines-btn" 
-	        onclick="toggleLineNumbers()" 
-	        title="Toggling line numbers will reset current highlight markers.">
-	  Line numbers: OFF
-	</button>
-	<button onclick="highlightDiff()">Highlight differences</button>
-  <button onclick="saveDocument()">Save current state (Ctrl+S)</button>
-  <span id="mod-count" class="diff-count">Highlights: n/a</span>
-  <span id="lines-diff-count" class="diff-count">Difference in number of lines: n/a</span>
+  <button id="toggle-lines-btn"
+          onclick="toggleLineNumbers()"
+          title="Toggling line numbers will reset current highlight markers.">
+    Line numbers: OFF
+  </button>
+  <button id="toggle-highlight-btn"
+           onclick="toggleHighlight()">
+    Highlight differences: OFF
+  </button>
+  <button onclick="saveState()">Save current state (Ctrl+S)</button>
 </div>
+
+<div class="status-bar">
+  <div class="status-column left">
+    <span id="left-line-count">Lines: 0</span>
+  </div>
+  <div class="status-column middle">
+    <span id="mod-count">Highlights: 0</span>
+  </div>
+  <div class="status-column right">
+    <span id="right-line-count">Lines: 0</span>
+  </div>
+</div>
+
+
 
 <table class="editor-table">
 <tr>
@@ -133,6 +182,19 @@ Another line</td>
 </table>
 
 <script id="app-script">
+// Global state
+let lineNumbersActive = false;
+let highlightingActive = false;
+const MAX_FILE_SIZE = 512 * 1024; // 512 KB
+const ALLOWED_TEXT_EXTENSIONS = [
+  'txt', 'md', 'markdown', 'json', 'csv', 'xml', 'html', 'htm', 'css', 'js', 'ts',
+  'py', 'java', 'cpp', 'c', 'h', 'rb', 'php', 'go', 'rs', 'sh', 'bash', 'yml', 'yaml',
+  'toml', 'ini', 'conf', 'config', 'log', 'sql', 'pl', 'swift', 'kt', 'scala', 'r',
+  'tex', 'latex', 'rst', 'asciidoc', 'adoc', 'org', 'norg', 'dart', 'lua', 'vim',
+  'gradle', 'maven', 'pom', 'dockerfile', 'makefile', 'cmake', 'diff', 'patch',
+  'env', 'properties', 'json'
+];
+
 
 function getLinesFromCell(cell) {
 // Helper function: Extracts plain text line by line from the contenteditable elements
@@ -141,6 +203,7 @@ function getLinesFromCell(cell) {
   // Text an allen gängigen Zeilenumbrüchen (\n oder \r\n) aufsplitten 
   return rawText.replace(/\r\n/g, '\n').split('\n');
 }
+
 
 function renumberLines(cell) {
 // ... assigns line numbers in the format "1› ", "2› ", "3› "
@@ -157,7 +220,8 @@ function renumberLines(cell) {
   return lines.length; // Gibt die Gesamtzeilenanzahl zurück
 }
 
-function updateLineDiffDisplay(countLeft, countRight) {
+
+function updateStatusBar(countLeft, countRight) {
   // If no values ​​were passed, we read the lines from the DOM.
   if (countLeft === undefined || countRight === undefined) {
     const leftCol = document.getElementById('left-column');
@@ -165,46 +229,41 @@ function updateLineDiffDisplay(countLeft, countRight) {
     countLeft = getLinesFromCell(leftCol).length;
     countRight = getLinesFromCell(rightCol).length;
   }
-  const diff = countRight - countLeft;
-  const formattedDiff = diff > 0 ? `+${diff}` : `${diff}`;
-  
-  document.getElementById('lines-diff-count').innerText = `Difference in number of lines: ${formattedDiff}`;
+  const highlights = document.querySelectorAll('mark.mod').length;
+
+  document.getElementById('left-line-count').innerText = `Lines: ${countLeft}`;
+  document.getElementById('right-line-count').innerText = `Lines: ${countRight}`;
+  document.getElementById('mod-count').innerText = `Highlights: ${highlights}`;
 }
+
 
 function renumberBoth() {
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
+  lineNumbersActive = true;
   // Pass the return values ​​directly to the display function.
-  updateLineDiffDisplay(
-    renumberLines(leftCol),
-    renumberLines(rightCol)
-  );
+  updateStatusBar( renumberLines(leftCol), renumberLines(rightCol) );
 }
 
 
-// Globaler Zustand für die Nummerierung
-let lineNumbersActive = false;
-
 function toggleLineNumbers() {
   const btn = document.getElementById('toggle-lines-btn');
-
   if (lineNumbersActive) {
     // If active: Remove numbers and highlights
     stripNumbers();
-    lineNumbersActive = false;
     btn.innerText = "Line numbers: OFF";
     btn.classList.remove('active');
   } else {
     // If inactive: Add numbers
     renumberBoth();
-    lineNumbersActive = true;
     btn.innerText = "Line numbers: ON";
     btn.classList.add('active');
   }
 }
 
-// In stripNumbers(), we ensure that the toggle state remains synchronized.
+
 function stripNumbers() {
+// In stripNumbers(), we ensure that the toggle state remains synchronized.
   // ... selectively deletes ONLY generated line numbers with the format "n› "
   const leftCol = document.getElementById('left-column');
   const rightCol = document.getElementById('right-column');
@@ -225,8 +284,7 @@ function stripNumbers() {
     btn.classList.remove('active');
   }
   // Update counter
-  document.getElementById('mod-count').innerText = 'Highlights: n/a';
-  updateLineDiffDisplay();
+  updateStatusBar();
 }
 
 
@@ -367,17 +425,47 @@ function highlightDiff() {
 
   // Update counter
   const totalDiffs = document.querySelectorAll('mark.mod').length;
-  document.getElementById('mod-count').innerText = `Highlights: ${totalDiffs}`;
-  updateLineDiffDisplay();
+
+  updateStatusBar();
 }
 
-	
+
 function escapeHtml(str) {
+// Helper for diffInline() and highLightDiff()
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-	
-function saveDocument() {
+
+function toggleHighlight() {
+  const btn = document.getElementById('toggle-highlight-btn');
+
+  if (highlightingActive) {
+    stripHighlights();
+    highlightingActive = false;
+    btn.innerText = "Highlight differences: OFF";
+    btn.classList.remove('active');
+  } else {
+    highlightDiff();
+    highlightingActive = true;
+    btn.innerText = "Highlight differences: ON";
+    btn.classList.add('active');
+  }
+}
+
+
+function stripHighlights() {
+  const leftCol = document.getElementById('left-column');
+  const rightCol = document.getElementById('right-column');
+
+  // Remove HTML markup and keep plain text
+  leftCol.innerText = leftCol.innerText;
+  rightCol.innerText = rightCol.innerText;
+
+  updateStatusBar();
+}
+
+
+function saveState() {
 // ... saves the current DOM state
   const docHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
   const blob = new Blob([docHTML], { type: 'text/html' });
@@ -392,8 +480,92 @@ function saveDocument() {
 document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
-    saveDocument();
+    saveState();
   }
+});
+
+
+function getFileExtension(filename) {
+  const parts = filename.split('.');
+  if (parts.length > 1) {
+    return parts[parts.length - 1].toLowerCase();
+  }
+  return '';
+}
+
+
+function isAllowedTextFile(filename, fileSize) {
+  // Check file size
+  if (fileSize > MAX_FILE_SIZE) {
+    alert(`File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)} MB.`);
+    return false;
+  }
+  const extension = getFileExtension(filename);
+  // Check if extension is in allowed list
+  if (!extension || !ALLOWED_TEXT_EXTENSIONS.includes(extension)) {
+    const proceed = confirm(
+      `File extension ".${extension}" is not in the list of common text file extension.\n\n` +
+      `Continue anyway? (The file will be read as plain text.)`
+    );
+    return proceed;
+  }
+  return true;
+}
+
+
+document.addEventListener('dragover', function (e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+
+document.addEventListener('drop', function (e) {
+  e.preventDefault();
+
+  const files = e.dataTransfer.files;
+  if (!files || files.length === 0) return;
+
+  const file = files[0];
+
+  // Validate file before reading
+  if (!isAllowedTextFile(file.name, file.size)) {
+    return;
+  }
+
+  const reader = new FileReader();
+
+reader.onload = function (event) {
+    const text = event.target.result;
+
+    const leftCol = document.getElementById('left-column');
+    const rightCol = document.getElementById('right-column');
+
+    const rect = leftCol.getBoundingClientRect();
+    const dropX = e.clientX;
+
+    if (dropX < rect.left + rect.width / 2) {
+      leftCol.innerText = text;
+    } else {
+      rightCol.innerText = text;
+    }
+
+    // If highlighting is active, turn it off
+    if (highlightingActive) {
+      const btn = document.getElementById('toggle-highlight-btn');
+      stripHighlights();
+      highlightingActive = false;
+      btn.innerText = "Highlight differences: OFF";
+      btn.classList.remove('active');
+    }
+
+    updateStatusBar();
+  };
+
+  reader.onerror = function () {
+    alert('Error reading file. Make sure it is a valid text file.');
+  };
+
+  reader.readAsText(file);
 });
 </script>
 
