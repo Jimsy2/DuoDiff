@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.6a - Differences highlighter for text</title>
+<title>DuoDiff v0.6b - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -117,7 +117,7 @@ mark.mod {
 	<button onclick="highlightDiff()">Highlight differences</button>
   <button onclick="saveDocument()">Save current state (Ctrl+S)</button>
   <span id="mod-count" class="diff-count">Highlights: n/a</span>
-  <span id="diff-number-of-lines" class="diff-count">Difference in number of lines: n/a</span>
+  <span id="lines-diff-count" class="diff-count">Difference in number of lines: n/a</span>
 </div>
 
 <table class="editor-table">
@@ -169,7 +169,7 @@ function updateLineDiffDisplay(countLeft, countRight) {
   const diff = countRight - countLeft;
   const formattedDiff = diff > 0 ? `+${diff}` : `${diff}`;
   
-  document.getElementById('diff-number-of-lines').innerText = `Difference in number of lines: ${formattedDiff}`;
+  document.getElementById('lines-diff-count').innerText = `Difference in number of lines: ${formattedDiff}`;
 }
 
 function renumberBoth() {
