@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DuoDiff v0.6 - Differences highlighter for text</title>
+<meta name="description" content="DuoDiff is single-file local html-page comparing two text files and .">
+<meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
+<meta name="license" content="GPL-2.0-only">
+<meta name="dcterms.license" content="GPL-2.0-only">
+<meta name="dcterms.rightsHolder" content="Dirk Eismann">
+<!--
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+-->
+<style>
+:root {
+  --bg-color: #1e1e1e;
+  --panel-bg: #252526;
+  --text-color: #d4d4d4;
+  --border-color: #3f3f46;
+  --accent-color: #0e639c;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  padding: 15px;
+  padding-top: 0; /* Padding oben entfernt, damit sticky nahtlos am Rand klebt */
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;   
+  display: flex;  
+  gap: 10px;
+  align-items: center;
+  background-color: var(--panel-bg); 
+  padding: 12px 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-color);
+  border-top: none;
+}
+
+button {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+button:hover { background: #1177bb; }
+
+button.active {
+  background-color: #16825d; /* Grüne/aktive Hervorhebung */
+}
+	
+.diff-counter {
+  margin-left: 10px; /* was auto */
+  font-size: 13px;
+  color: #aaa;
+  font-weight: bold;
+}
+
+/* Ersten Counter nach rechts schieben, zweiter schließt sich an */
+#diff-counter {
+  margin-left: auto;
+}
+
+.editor-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.editor-cell {
+  width: 50%;
+  vertical-align: top;
+  padding: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  min-height: 80vh;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Markierung für gefundene Unterschiede */
+mark.mod {
+  background-color: #855a00;
+  color: #fff;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+	<button id="toggle-lines-btn" 
+	        onclick="toggleLineNumbers()" 
+	        title="Toggling line numbers will reset current highlight markers.">
+	  Line numbers: OFF
+	</button>
+	<button onclick="highlightDiff()">Highlight differences</button>
+  <button onclick="saveDocument()">Save current state (Ctrl+S)</button>
+  <span id="diff-counter" class="diff-counter">Highlights: n/a</span>
+  <span id="diff-number-of-lines" class="diff-counter">Difference in number of lines: n/a</span>
+</div>
+
+<table class="editor-table">
+<tr>
+<td id="left-column" class="editor-cell" contenteditable="true" spellcheck="false"
+>Left column
+Here is text
+Another line</td>
+<td id="right-column" class="editor-cell" contenteditable="true" spellcheck="false"
+>Right column
+Here is modified text
+Another line</td>
+</tr>
+</table>
+
+<script id="app-script">
+
+function getLinesFromCell(cell) {
+  /* Helper function: Extrahiert reinen Text zeilenweise aus dem contenteditable-Element
+     innerText wandelt <div>, <p> und <br> automatisch in \n um ... */
+  const rawText = cell.innerText || '';
+  // Text an allen gängigen Zeilenumbrüchen (\n oder \r\n) aufsplitten 
+  return rawText.replace(/\r\n/g, '\n').split('\n');
+}
+
+function renumberLines(cell) {
+  /* ... vergibt Zeilennummern im Format "1› ", "2› ", "3› "
+     und gibt die Anzahl der verarbeiteten Zeilen zurückliefern */
+  const lines = getLinesFromCell(cell);
+  const renumbered = lines.map((line, index) => {
+    // Entfernt "Zahl + › + 1 Leerzeichen" am Anfang der Zeile
+    const cleanLine = line.replace(/^\d+› /, '');
+    // Beim Nummerieren wird ein Leerzeichen nach dem › eingefügt
+    return `${index + 1}› ${cleanLine}`;
+  }).join('\n');
+
+  cell.innerText = renumbered;
+  return lines.length; // Gibt die Gesamtzeilenanzahl zurück
+}
+
+function updateLineDiffDisplay(countLeft, countRight) {
+  // Falls keine Werte übergeben wurden, lesen wir die Zeilen aus dem DOM ab
+  if (countLeft === undefined || countRight === undefined) {
+    const leftCol = document.getElementById('left-column');
+    const rightCol = document.getElementById('right-column');
+    countLeft = getLinesFromCell(leftCol).length;
+    countRight = getLinesFromCell(rightCol).length;
+  }
+  const diff = countRight - countLeft;
+  const formattedDiff = diff > 0 ? `+${diff}` : `${diff}`;
+  
+  document.getElementById('diff-number-of-lines').innerText = `Difference in number of lines: ${formattedDiff}`;
+}
+
+function renumberBoth() {
+  const leftCol = document.getElementById('left-column');
+  const rightCol = document.getElementById('right-column');
+  // Direkt die Rückgabewerte an die Anzeige-Funktion durchreichen
+  updateLineDiffDisplay(
+    renumberLines(leftCol),
+    renumberLines(rightCol)
+  );
+}
+
+
+// Globaler Zustand für die Nummerierung
+let lineNumbersActive = false;
+
+function toggleLineNumbers() {
+  const btn = document.getElementById('toggle-lines-btn');
+
+  if (lineNumbersActive) {
+    // Wenn aktiv: Nummern und Highlights entfernen
+    stripNumbers();
+    lineNumbersActive = false;
+    btn.innerText = "Line numbers: OFF";
+    btn.classList.remove('active');
+  } else {
+    // Wenn inaktiv: Nummern hinzufügen
+    renumberBoth();
+    lineNumbersActive = true;
+    btn.innerText = "Line numbers: ON";
+    btn.classList.add('active');
+  }
+}
+
+// In stripNumbers() stellen wir sicher, dass der Toggle-Zustand synchron bleibt
+function stripNumbers() {
+  // .. löscht gezielt NUR generierte Zeilennummern mit dem Format "n› "
+  const leftCol = document.getElementById('left-column');
+  const rightCol = document.getElementById('right-column');
+  
+  const removeNum = cell => {
+    const lines = getLinesFromCell(cell);
+    // RegEx:^\d+›\s* sucht am Zeilenanfang nach Zahlen gefolgt von › und Leerzeichen
+    const clean = lines.map(l => l.replace(/^\d+› /, '')).join('\n');
+    cell.innerText = clean;
+  };
+  removeNum(leftCol);
+  removeNum(rightCol);
+  // Status und Button-Text zurücksetzen
+  lineNumbersActive = false;
+  const btn = document.getElementById('toggle-lines-btn');
+  if (btn) {
+    btn.innerText = "Line numbers: OFF";
+    btn.classList.remove('active');
+  }
+
+  // Zähler aktualisieren
+  document.getElementById('diff-counter').innerText = 'Highlights: n/a';
+  updateLineDiffDisplay();
+}
+
+
+function diffInline(str1, str2) {
+  // Rekursives Diff mit Laufzeit-Schutz für sehr lange Quellcode-Zeilen
+  // 1. Abbruchbedingungen der Rekursion: Identische Strings oder leere Seiten ...
+  if (str1 === str2) return { left: escapeHtml(str1), right: escapeHtml(str2) };
+  if (!str1) return { left: '', right: `<mark class="mod">${escapeHtml(str2)}</mark>` };
+  if (!str2) return { left: `<mark class="mod">${escapeHtml(str1)}</mark>`, right: '' };
+
+  /* 2. Bei sehr langen Zeilen (> 300 Zeichen) ohne schnelle Entsprechung
+     brechen wir das feine Diff ab, um ein Einfrieren des Browsers zu verhindern. */
+  const MAX_DIFF_LEN = 300;
+  if (str1.length > MAX_DIFF_LEN || str2.length > MAX_DIFF_LEN) {
+    // Versuche nur am Anfang/Ende gemeinsame Zeichen zu finden ...
+    let prefixLen = 0;
+    while (prefixLen < str1.length && prefixLen < str2.length && str1[prefixLen] === str2[prefixLen]) {
+      prefixLen++;
+    }
+
+    let suffixLen = 0;
+    while (
+      suffixLen < (str1.length - prefixLen) &&
+      suffixLen < (str2.length - prefixLen) &&
+      str1[str1.length - 1 - suffixLen] === str2[str2.length - 1 - suffixLen]
+    ) {
+      suffixLen++;
+    }
+
+    const mid1 = str1.slice(prefixLen, str1.length - suffixLen);
+    const mid2 = str2.slice(prefixLen, str2.length - suffixLen);
+
+    const prefix = escapeHtml(str1.slice(0, prefixLen));
+    const suffix = escapeHtml(str1.slice(str1.length - suffixLen));
+
+    return {
+      left: prefix + `<mark class="mod">${escapeHtml(mid1)}</mark>` + suffix,
+      right: prefix + `<mark class="mod">${escapeHtml(mid2)}</mark>` + suffix
+    };
+  }
+
+  // 3. Normales LCS (Längste gemeinsame Zeichenkette) für kurze/mittlere Strings
+  let lcs = findLongestCommonSubstr(str1, str2);
+  // Wenn keine Mindest-Gemeinsamkeit existiert (z.B. < 2 Zeichen): Gesamten Rest als abweichend markieren
+  if (lcs.length < 2) {
+    return {
+      left: `<mark class="mod">${escapeHtml(str1)}</mark>`,
+      right: `<mark class="mod">${escapeHtml(str2)}</mark>`
+    };
+  }
+
+  const p1 = str1.indexOf(lcs);
+  const p2 = str2.indexOf(lcs);
+  const head = diffInline(str1.substring(0, p1), str2.substring(0, p2));
+  const tail = diffInline(str1.substring(p1 + lcs.length), str2.substring(p2 + lcs.length));
+
+  return {
+    left: head.left + escapeHtml(lcs) + tail.left,
+    right: head.right + escapeHtml(lcs) + tail.right
+  };
+}
+
+
+function findLongestCommonSubstr(str1, str2) {
+  // Helper function: Optimierte LCS-Suche mit Early-Exit
+  let longest = "";
+
+  for (let i = 0; i < str1.length; i++) {
+    for (let j = i + 1; j <= str1.length; j++) {
+      let sub = str1.substring(i, j);
+      
+      if (!str2.includes(sub)) {
+        break;  // Abbruch der inneren Schleife
+      }
+      
+      if (sub.length > longest.length) {
+        longest = sub;
+        // Early Exit: Wenn ein Anker von 15+ Zeichen gefunden wurde, reicht das aus ...
+        if (longest.length >= 15) return longest;
+      }
+    }
+  }
+  return longest;
+}
+
+
+function highlightDiff() {
+  /* stripNumbers() wird hier nicht mehr aufgerufen, da Zeilennummern 
+     seit Versiom 0.6 ignoriert werden */
+
+  const leftCol = document.getElementById('left-column');
+  const rightCol = document.getElementById('right-column');
+
+  // Vorherige HTML-Markierungen (<mark>) entfernen
+  leftCol.innerText = leftCol.innerText;
+  rightCol.innerText = rightCol.innerText;
+
+  // Hilfsfunktion zum Trennen von Präfix und eigentlichem Inhalt
+  const parseLine = line => {
+    if (lineNumbersActive) {
+      // Nur wenn die Nummerierung aktiv ist, trennen wir das "n› "-Präfix ab
+      const match = line.match(/^(\d+› )(.*)/);
+      return {
+        prefix: match ? match[1] : '',
+        content: match ? match[2] : line
+      };
+    }
+    // Wenn nicht aktiv, ist die ganze Zeile der reine Inhalt
+    return { prefix: '', content: line };
+  };
+
+  const linesL = getLinesFromCell(leftCol).map(parseLine);
+  const linesR = getLinesFromCell(rightCol).map(parseLine);
+
+  // Helper zum Vergleichen einer Spalte gegen die Zielspalte
+  const processColumn = (sourceLines, targetLines, isLeftColumn) => {
+    return sourceLines.map((item, idx) => {
+      const targetItem = targetLines[idx] || null;
+
+      // Wenn die Zeilen sich unterscheiden ...
+      if (targetItem !== null && item.content !== targetItem.content) {
+        const strLeft = isLeftColumn ? item.content : targetItem.content;
+        const strRight = isLeftColumn ? targetItem.content : item.content;
+
+        const inlineResult = diffInline(strLeft, strRight);
+        const highlighted = isLeftColumn ? inlineResult.left : inlineResult.right;
+
+        // Gibt die Zeilennummer (falls vorhanden) vor der Markierung aus
+        return escapeHtml(item.prefix) + highlighted;
+      }
+      // Bei Identität oder fehlender Gegenzeile: Eigener Text unverändert ...
+      return escapeHtml(item.prefix + item.content);
+    }).join('\n');
+  };
+
+  // Beide Spalten mit dem korrekten Flag verarbeiten
+  leftCol.innerHTML = processColumn(linesL, linesR, true);
+  rightCol.innerHTML = processColumn(linesR, linesL, false);
+
+  // Counter aktualisieren
+  const totalDiffs = document.querySelectorAll('mark.mod').length;
+  document.getElementById('diff-counter').innerText = `Highlights: ${totalDiffs}`;
+  updateLineDiffDisplay();
+}
+
+	
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+	
+function saveDocument() {
+// ... sichert den aktuellen DOM-Zustand
+  const docHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+  const blob = new Blob([docHTML], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = location.pathname.split('/').pop() || 'DuoDiff.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// Strg+S abfangen ...
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveDocument();
+  }
+});
+</script>
+
+</body>
+</html>
