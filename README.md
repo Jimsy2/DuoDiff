@@ -59,3 +59,14 @@ Any suggestions? Open an issue on [GitHub](https://github.com/Jimsy2/DuoDiff/iss
 **v0.7** — added Drag 'n Drop file upload, turned Highlighting into a ON/OFF-Button
 **v0.6a** — updated Meta-Data and translated some comments  
 **v0.6** — Initial public release  
+
+## LICENSE ##
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
