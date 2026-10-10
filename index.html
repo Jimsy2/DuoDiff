@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.6 - Differences highlighter for text</title>
-<meta name="description" content="DuoDiff is single-file local html-page comparing two text files and .">
+<title>DuoDiff v0.6a - Differences highlighter for text</title>
+<meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
 <meta name="dcterms.license" content="GPL-2.0-only">
@@ -34,8 +34,7 @@ body {
   font-size: 14px;
   line-height: 1.6;
   margin: 0;
-  padding: 15px;
-  padding-top: 0; /* Padding oben entfernt, damit sticky nahtlos am Rand klebt */
+  padding: 0 15px 15px 15px;
 }
 
 .toolbar {
@@ -65,17 +64,17 @@ button {
 button:hover { background: #1177bb; }
 
 button.active {
-  background-color: #16825d; /* Grüne/aktive Hervorhebung */
+  background-color: #16825d; /* green color for active buttons */
 }
 	
 .diff-counter {
-  margin-left: 10px; /* was auto */
+  margin-left: 10px;
   font-size: 13px;
   color: #aaa;
   font-weight: bold;
 }
 
-/* Ersten Counter nach rechts schieben, zweiter schließt sich an */
+/* this should be renamed to num-highlights to avoid confusion with the class of the same name */
 #diff-counter {
   margin-left: auto;
 }
@@ -98,7 +97,7 @@ button.active {
   word-break: break-all;
 }
 
-/* Markierung für gefundene Unterschiede */
+/* Highlighting for differences/modifications found */
 mark.mod {
   background-color: #855a00;
   color: #fff;
@@ -137,16 +136,16 @@ Another line</td>
 <script id="app-script">
 
 function getLinesFromCell(cell) {
-  /* Helper function: Extrahiert reinen Text zeilenweise aus dem contenteditable-Element
-     innerText wandelt <div>, <p> und <br> automatisch in \n um ... */
+// Helper function: Extracts plain text line by line from the contenteditable elements
+// `innerText` and automatically converts <div>, <p> and <br> into \n (new line)
   const rawText = cell.innerText || '';
   // Text an allen gängigen Zeilenumbrüchen (\n oder \r\n) aufsplitten 
   return rawText.replace(/\r\n/g, '\n').split('\n');
 }
 
 function renumberLines(cell) {
-  /* ... vergibt Zeilennummern im Format "1› ", "2› ", "3› "
-     und gibt die Anzahl der verarbeiteten Zeilen zurückliefern */
+// ... assigns line numbers in the format "1› ", "2› ", "3› "
+// and returns the number of lines processed.
   const lines = getLinesFromCell(cell);
   const renumbered = lines.map((line, index) => {
     // Entfernt "Zahl + › + 1 Leerzeichen" am Anfang der Zeile
