@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.7b - Differences highlighter for text</title>
+<title>DuoDiff v0.7c - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -51,7 +51,18 @@ body {
   border: 1px solid var(--border-color);
   border-top: none;
 }
+	
+.toolbar-title {
+  font-size: 18px;
+  color: var(--text-color);
+  margin-left: 6px;
+  margin-right: 20px;
+}
 
+.toolbar-spacer {
+  flex: 1;
+}
+	
 .status-bar {
   position: fixed;
   left: 0;
@@ -121,7 +132,7 @@ button.active {
 .editor-cell {
   width: 50%;
   vertical-align: top;
-  padding: 12px;
+  padding: 8px;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   min-height: 80vh;
@@ -142,6 +153,8 @@ mark.mod {
 <body>
 
 <div class="toolbar">
+  <div class="toolbar-title"><b>DuoDiff</b> v0.7c</div>
+  <div class="toolbar-spacer"></div>
   <button id="toggle-lines-btn"
           onclick="toggleLineNumbers()"
           title="Toggling line numbers will reset current highlight markers.">
@@ -553,10 +566,8 @@ reader.onload = function (event) {
     const leftCol = document.getElementById('left-column');
     const rightCol = document.getElementById('right-column');
 
-    const rect = leftCol.getBoundingClientRect();
-    const dropX = e.clientX;
-
-    if (dropX < rect.left + rect.width / 2) {
+    // Assignment of the drop zone based on the screen half
+    if (e.clientX < window.innerWidth / 2) {
       leftCol.innerText = text;
     } else {
       rightCol.innerText = text;
