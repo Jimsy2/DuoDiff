@@ -1,4 +1,4 @@
-# DuoDiff 0.7 ##
+# DuoDiff #
 A single-file HTML page for comparing two text files side-by-side with visual difference highlighting.
 
 ## Features ##
