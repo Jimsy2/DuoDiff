@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.8 - Differences highlighter for text</title>
+<title>DuoDiff v0.8a - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -25,6 +25,7 @@ GNU General Public License for more details.
   --text-color: #d4d4d4;
   --border-color: #3f3f46;
   --accent-color: #0e639c;
+  --focus-color: #5a5a66;
 }
 
 body {
@@ -124,21 +125,30 @@ button.active {
 }
 
 .panel-frame {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* calc(50% - 5px) calc(50% - 5px); */
+  gap: 10px;
   width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+  /* align-items: stretch;  Stellt sicher, dass beide Panels gleich hoch sind */
 }
 
 .text-panel {
-  width: 50%;
-  vertical-align: top;
-  padding: 8px;
+  box-sizing: border-box;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
-  height: 82vh;
-  outline: none;
-  white-space: pre-wrap;
+  padding: 4px 8px;
+  min-height: 82vh;
+  font-family: inherit;
+  white-space: pre-wrap; /* anfangs: Word wrap aktiv */
   word-break: break-all;
+  overflow-x: auto;
+  &:focus-visible {outline: 1px solid var(--focus-color)};
+}
+
+/* Modus für ausgeschalteten Zeilenumbruch (Quellcode-Ansicht) */
+.text-panel.no-wrap {
+  white-space: pre;
+  word-break: normal;
 }
 
 /* Highlighting for differences/modifications found */
@@ -153,18 +163,12 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v0.8</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v0.8a</div>
   <button onclick="clearPanels()">Clear panels</button>
   <div class="toolbar-spacer"></div>
-  <button id="toggle-lines-btn"
-          onclick="toggleLineNumbers()"
-          title="Toggling line numbers will reset current highlight markers.">
-    Line numbers: OFF
-  </button>
-  <button id="toggle-highlight-btn"
-           onclick="toggleHighlight()">
-    Highlight differences: OFF
-  </button>
+  <button id="toggle-lines-btn" onclick="toggleLineNumbers()" title="Toggling line numbers will reset current highlight markers."> Line numbers: OFF </button>
+  <button id="toggle-highlight-btn" onclick="toggleHighlight()"> Highlight differences: OFF </button>
+  <button id="toggle-wrap-btn" onclick="toggleWordWrap()" class="active"> Word wrap: ON </button>
   <button onclick="saveState()">Save current state (Ctrl+S)</button>
 </div>
 
@@ -181,30 +185,29 @@ mark.mod {
 </div>
 
 
-<table class="panel-frame">
-<tr>
-<td id="left-panel" class="text-panel" contenteditable="true" spellcheck="false">Left panel
+<div class="panel-frame">
+  <div id="left-panel" class="text-panel" contenteditable="true" spellcheck="false">Left panel
 Drag & drop a text file here
 or paste/edit text directly
 
 Here is text
-Another line</td>
-<td id="right-panel" class="text-panel" contenteditable="true" spellcheck="false">Right panel
+Another line</div>
+
+  <div id="right-panel" class="text-panel" contenteditable="true" spellcheck="false">Right panel
 Drag & drop a text file here
 or paste/edit text directly
 
 Here is modified text
 Another line
-This is an additional line.
-</td>
-</tr>
-</table>
+This is an additional line.</div>
+</div>
 
 
 <script id="app-script">
 // Global state
 let lineNumbersActive = false;
 let highlightingActive = false;
+let wordWrapActive = true;
 const MAX_FILE_SIZE = 512 * 1024; // 512 KB
 const ALLOWED_TEXT_EXTENSIONS = [
   'txt', 'md', 'markdown', 'json', 'csv', 'xml', 'html', 'htm', 'css', 'js', 'ts',
@@ -215,6 +218,29 @@ const ALLOWED_TEXT_EXTENSIONS = [
   'env', 'properties', 'json'
 ];
 
+	
+function toggleWordWrap() {
+  const leftPanel = document.getElementById('left-panel');
+  const rightPanel = document.getElementById('right-panel');
+  const btn = document.getElementById('toggle-wrap-btn');
+
+  if (wordWrapActive) {
+    // Umbruch ausschalten -> Scrollen aktivieren
+    leftPanel.classList.add('no-wrap');
+    rightPanel.classList.add('no-wrap');
+    wordWrapActive = false;
+    btn.innerText = "Word wrap: OFF";
+    btn.classList.remove('active');
+  } else {
+    // Umbruch wieder einschalten
+    leftPanel.classList.remove('no-wrap');
+    rightPanel.classList.remove('no-wrap');
+    wordWrapActive = true;
+    btn.innerText = "Word wrap: ON";
+    btn.classList.add('active');
+  }
+}
+	
 
 function getLinesFromCell(cell) {
 // Helper function: Extracts plain text line by line from the contenteditable elements
