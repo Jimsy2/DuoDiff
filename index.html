@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.8a - Differences highlighter for text</title>
+<title>DuoDiff v0.9d - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -20,12 +20,16 @@ GNU General Public License for more details.
 -->
 <style>
 :root {
+  /* default: Dark Mode (VS Code Dark Style) */
   --bg-color: #1e1e1e;
   --panel-bg: #252526;
   --text-color: #d4d4d4;
   --border-color: #3f3f46;
   --accent-color: #0e639c;
-  --focus-color: #5a5a66;
+  --focus-color: #007acc;
+  --mark-bg: #855a00;
+  --mark-color: #ffffff;
+  --panel-focus-outline: #5a5a66;
 }
 
 body {
@@ -35,7 +39,7 @@ body {
   font-size: 14px;
   line-height: 1.6;
   margin: 0;
-  padding: 0 15px 15px 15px;
+  padding: 0 0 15px 0;
   padding-bottom: 52px; /* keep room for the fixed status bar */
 }
 
@@ -64,6 +68,40 @@ body {
   flex: 1;
 }
 	
+button {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover { background: #1177bb; }
+
+.toolbar-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+  color: var(--text-color);
+  padding: 4px 8px;
+  border-radius: 2px;
+}
+
+.toolbar-checkbox:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.toolbar-checkbox input {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
 .status-bar {
   position: fixed;
   left: 0;
@@ -97,22 +135,6 @@ body {
   text-align: right;
 }
 
-button {
-  background: var(--accent-color);
-  color: #fff;
-  border: none;
-  padding: 6px 14px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 2px;
-}
-
-button:hover { background: #1177bb; }
-
-button.active {
-  background-color: #16825d; /* green color for active buttons */
-}
-	
 .diff-count {
   margin-left: 10px;
   font-size: 13px;
@@ -125,11 +147,13 @@ button.active {
 }
 
 .panel-frame {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* calc(50% - 5px) calc(50% - 5px); */
-  gap: 10px;
+  display: table; /* was grid */
+  /* grid-template-columns: 1fr 1fr;
+  gap: 10px; */
   width: 100%;
-  /* align-items: stretch;  Stellt sicher, dass beide Panels gleich hoch sind */
+  table-layout: fixed;
+  border-spacing: 10px 0; /* Ersetzt den Grid-Gap */
+	margin-left:0;
 }
 
 .text-panel {
@@ -137,38 +161,63 @@ button.active {
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   padding: 4px 8px;
-  min-height: 82vh;
-  font-family: inherit;
-  white-space: pre-wrap; /* anfangs: Word wrap aktiv */
+  height: 82vh;
+  font-family: inherit;	color:inherit;
+  white-space: pre-wrap; /* at start word wrap is aktive */
   word-break: break-all;
   overflow-x: auto;
-  &:focus-visible {outline: 1px solid var(--focus-color)};
+  &:focus-visible {outline: 1px solid var(--panel-focus-outline)};
+  display: table-cell;
+  width: 50%;
 }
 
-/* Modus für ausgeschalteten Zeilenumbruch (Quellcode-Ansicht) */
+/* Line-wrapping disabled mode for source code view */
 .text-panel.no-wrap {
   white-space: pre;
   word-break: normal;
 }
 
-/* Highlighting for differences/modifications found */
+/* Highlighting for differences (modifications) found */
 mark.mod {
-  background-color: #855a00;
-  color: #fff;
+  background-color: var(--mark-bg);
+  color: var(--mark-color);
   border-radius: 2px;
   padding: 0 2px;
+}
+
+/* Automatic switch when Dark Mode is disabled */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-color: #f3f3f3;
+    --panel-bg: #ffffff;
+    --text-color: #333333;
+    --border-color: #cccccc;
+    --accent-color: #0078d4;
+    --focus-color: #005a9e;
+    --mark-bg: #fff066; /* A lighter yellow for markings in light mode */
+    --mark-color: #000000;
+  }
 }
 </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v0.8a</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v0.9d</div>
   <button onclick="clearPanels()">Clear panels</button>
   <div class="toolbar-spacer"></div>
-  <button id="toggle-lines-btn" onclick="toggleLineNumbers()" title="Toggling line numbers will reset current highlight markers."> Line numbers: OFF </button>
-  <button id="toggle-highlight-btn" onclick="toggleHighlight()"> Highlight differences: OFF </button>
-  <button id="toggle-wrap-btn" onclick="toggleWordWrap()" class="active"> Word wrap: ON </button>
+  <label class="toolbar-checkbox">
+    <input type="checkbox" id="toggle-wrap-cb" onchange="toggleWordWrap()" checked>
+    Word wrap
+  </label>
+  <label class="toolbar-checkbox" title="Toggling line numbers will reset current highlight markers.">
+    <input type="checkbox" id="toggle-lines-cb" onchange="toggleLineNumbers()">
+    Line numbers
+  </label>
+  <label class="toolbar-checkbox">
+    <input type="checkbox" id="toggle-highlight-cb" onchange="toggleHighlight()">
+    Highlight differences
+  </label>
   <button onclick="saveState()">Save current state (Ctrl+S)</button>
 </div>
 
@@ -202,177 +251,315 @@ Another line
 This is an additional line.</div>
 </div>
 
-
 <script id="app-script">
-// Global state
+// GLOBAL STATE
 let lineNumbersActive = false;
 let highlightingActive = false;
 let wordWrapActive = true;
 const MAX_FILE_SIZE = 512 * 1024; // 512 KB
 const ALLOWED_TEXT_EXTENSIONS = [
-  'txt', 'md', 'markdown', 'json', 'csv', 'xml', 'html', 'htm', 'css', 'js', 'ts',
-  'py', 'java', 'cpp', 'c', 'h', 'rb', 'php', 'go', 'rs', 'sh', 'bash', 'yml', 'yaml',
-  'toml', 'ini', 'conf', 'config', 'log', 'sql', 'pl', 'swift', 'kt', 'scala', 'r',
-  'tex', 'latex', 'rst', 'asciidoc', 'adoc', 'org', 'norg', 'dart', 'lua', 'vim',
-  'gradle', 'maven', 'pom', 'dockerfile', 'makefile', 'cmake', 'diff', 'patch',
-  'env', 'properties', 'json'
+  'adoc', 'asciidoc', 'bash', 'c', 'cmake', 'conf', 'config', 'cpp', 'css', 'csv',
+  'dart', 'diff', 'dockerfile', 'env', 'eml',
+  'go', 'gradle', 'h', 'html', 'htm', 'ini', 
+  'js', 'json', 'kt', 'latex', 'log', 'lua', 
+  'makefile', 'maven', 'markdown', 'md', 'mhtml', 'norg', 
+  'org', 'pl', 'py', 'java', 'patch','php', 'pom', 'properties', 
+  'r', 'rb', 'rs', 'rst', 'scala', 'sh', 'sql', 'svg', 'swift',
+  'tex', 'toml', 'ts', 'txt',
+  'vim', 'xhtml', 'xml', 'yml', 'yaml', 'zsh'
 ];
-
+// Initialize status bar on page load
+updateStatusBar();
 	
+//
+// FUNCTIONS CALLED BY onClick and onChange
+//	
+function clearPanels() {
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');  
+  left.innerText = '';
+  right.innerText = '';
+  
+  if (highlightingActive) {
+    highlightingActive = false;
+    document.getElementById('toggle-highlight-cb').checked = false;
+  }
+  if (lineNumbersActive) {
+    lineNumbersActive = false;
+    document.getElementById('toggle-lines-cb').checked = false;
+  }  
+  updateStatusBar();
+}
+	
+
 function toggleWordWrap() {
   const leftPanel = document.getElementById('left-panel');
   const rightPanel = document.getElementById('right-panel');
-  const btn = document.getElementById('toggle-wrap-btn');
 
   if (wordWrapActive) {
-    // Umbruch ausschalten -> Scrollen aktivieren
+    // Disable word wrap -> Enable scrolling
     leftPanel.classList.add('no-wrap');
     rightPanel.classList.add('no-wrap');
     wordWrapActive = false;
-    btn.innerText = "Word wrap: OFF";
-    btn.classList.remove('active');
   } else {
-    // Umbruch wieder einschalten
+    // Re-enable line breaks
     leftPanel.classList.remove('no-wrap');
     rightPanel.classList.remove('no-wrap');
     wordWrapActive = true;
-    btn.innerText = "Word wrap: ON";
-    btn.classList.add('active');
   }
 }
-	
 
-function getLinesFromCell(cell) {
-// Helper function: Extracts plain text line by line from the contenteditable elements
-// `innerText` and automatically converts <div>, <p> and <br> into \n (new line)
-  const rawText = cell.innerText || '';
-  // Text an allen gängigen Zeilenumbrüchen (\n oder \r\n) aufsplitten 
-  return rawText.replace(/\r\n/g, '\n').split('\n');
+
+function toggleLineNumbers() {
+  const linesCb = document.getElementById('toggle-lines-cb');
+  const highlightCb = document.getElementById('toggle-highlight-cb');
+
+  if (lineNumbersActive) {
+    stripNumbers();
+    lineNumbersActive = false;
+    linesCb.checked = false;
+  } else {
+    // If inactive: Add numbers
+    renumberBoth();
+    lineNumbersActive = true;
+    linesCb.checked = true;
+  }
+  // Turn OFF highlighting if it's active
+  if (highlightingActive) {
+    stripHighlights();
+    highlightingActive = false;
+    highlightCb.checked = false;
+  }
+}
+
+	
+function toggleHighlight() {
+  if (highlightingActive) {
+    stripHighlights();
+    highlightingActive = false;
+  } else {
+    highlightDiff();
+    highlightingActive = true;
+  }
+}
+
+//
+// EVENT-LISTENERS and associated functions
+//
+	
+// Intercept Ctrl+S ...
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveState();
+  }
+});
+
+
+function saveState() {
+// ... saves the current DOM state
+  const docHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+  const blob = new Blob([docHTML], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = location.pathname.split('/').pop() || 'DuoDiff.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 
-function renumberLines(cell) {
+document.addEventListener('dragover', function (e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+
+document.addEventListener('drop', function (e) {
+  e.preventDefault();
+
+  const files = e.dataTransfer.files;
+  if (!files || files.length === 0) return;
+
+  const file = files[0];
+
+  // Validate file before reading
+  if (!isAllowedTextFile(file.name, file.size)) {
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function (event) {
+    const text = event.target.result;
+    // Assignment of the drop zone based on the screen half
+    const isLeft = e.clientX < window.innerWidth / 2;
+    const side = isLeft ? 'left' : 'right';
+    const targetPanel = document.getElementById(`${side}-panel`);
+
+    targetPanel.innerText = text;
+
+    const count = lineNumbersActive ? renumberLines(targetPanel) : undefined;
+    updateLineCount(side, count);
+
+    // If highlighting is active, turn it off and sync checkbox
+    if (highlightingActive) {
+      stripHighlights();
+      highlightingActive = false;
+      document.getElementById('toggle-highlight-cb').checked = false;
+    } else {
+      updateHighlightStatus();
+    }
+  };
+  reader.onerror = function () {
+    alert('Error reading file. Make sure it is a valid text file.');
+  };
+
+  reader.readAsText(file);
+});
+
+	
+function isAllowedTextFile(filename, fileSize) {
+  // Check file size
+  if (fileSize > MAX_FILE_SIZE) {
+    alert(`File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)} MB.`);
+    return false;
+  }
+  const extension = getFileExtension(filename);
+  // Check if extension is in allowed list
+  if (!extension || !ALLOWED_TEXT_EXTENSIONS.includes(extension)) {
+    const proceed = confirm(
+      `File extension ".${extension}" is not in the list of common text file extension.\n\n` +
+      `Continue anyway? (The file will be read as plain text.)`
+    );
+    return proceed;
+  }
+  return true;
+}
+
+
+function getFileExtension(filename) {
+  const parts = filename.split('.');
+  if (parts.length > 1) {
+    return parts[parts.length - 1].toLowerCase();
+  }
+  return '';
+}
+
+//
+// MAIN SUB-ROUTINES
+//
+	
+function renumberBoth() {
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');
+  lineNumbersActive = true;
+  // Pass the return line counts directly to the status bar.
+  updateLineCount('left',renumberLines(left));
+  updateLineCount('right',renumberLines(right));
+}
+
+
+function renumberLines(panel) {
 // ... assigns line numbers in the format "1› ", "2› ", "3› "
 // and returns the number of lines processed.
-  const lines = getLinesFromCell(cell);
+  const lines = getLinesFromPanel(panel);
   const renumbered = lines.map((line, index) => {
     // Entfernt "Zahl + › + 1 Leerzeichen" am Anfang der Zeile
     const cleanLine = line.replace(/^\d+› /, '');
     // Beim Nummerieren wird ein Leerzeichen nach dem › eingefügt
     return `${index + 1}› ${cleanLine}`;
   }).join('\n');
-
-  cell.innerText = renumbered;
+  panel.innerText = renumbered;
   return lines.length; // Gibt die Gesamtzeilenanzahl zurück
-}
-
-
-function clearPanels() {
-  const leftPanel = document.getElementById('left-panel');
-  const rightPanel = document.getElementById('right-panel');
-  
-  leftPanel.innerText = '';
-  rightPanel.innerText = '';
-  
-  // Reset highlighting if active
-  if (highlightingActive) {
-    const btn = document.getElementById('toggle-highlight-btn');
-    highlightingActive = false;
-    btn.innerText = "Highlight differences: OFF";
-    btn.classList.remove('active');
-  }
-  
-  // Reset line numbers if active
-  if (lineNumbersActive) {
-    const btn = document.getElementById('toggle-lines-btn');
-    lineNumbersActive = false;
-    btn.innerText = "Line numbers: OFF";
-    btn.classList.remove('active');
-  }
-  
-  updateStatusBar();
-}
-
-	
-function updateLineCount(side,count) {
-  if (count === undefined ) {
-    const oneCol = document.getElementById(side+'-panel');
-    count = getLinesFromCell(oneCol).length;
-	}
-  document.getElementById(side+'-line-count').innerText = `Lines: ${count}`;
-}
-
-	
-function updateHighlightStatus() {
-  const highlights = document.querySelectorAll('mark.mod').length;
-  document.getElementById('mod-count').innerText = `Highlights: ${highlights}`;
-}
-
-	
-// comfort function for complete status reset
-function updateStatusBar() {
-  updateLineCount('left');
-  updateLineCount('right');
-  updateHighlightStatus();
-}
-
-	
-function renumberBoth() {
-  const leftCol = document.getElementById('left-panel');
-  const rightCol = document.getElementById('right-panel');
-  lineNumbersActive = true;
-  // Pass the return line counts ​​directly to the status bar.
-  updateLineCount('left',renumberLines(leftCol));
-  updateLineCount('right',renumberLines(rightCol));
-}
-
-
-function toggleLineNumbers() {
-  const btn = document.getElementById('toggle-lines-btn');
-  if (lineNumbersActive) {
-    // If active: Remove numbers and highlights
-    stripNumbers();
-    btn.innerText = "Line numbers: OFF";
-    btn.classList.remove('active');
-  } else {
-    // If inactive: Add numbers
-    renumberBoth();
-    btn.innerText = "Line numbers: ON";
-    btn.classList.add('active');
-  }
-  // Turn OFF highlighting if it's active
-  if (highlightingActive) {
-    const highlightBtn = document.getElementById('toggle-highlight-btn');
-    stripHighlights();
-    highlightingActive = false;
-    highlightBtn.innerText = "Highlight differences: OFF";
-    highlightBtn.classList.remove('active');
-  }
 }
 
 
 function stripNumbers() {
   // In stripNumbers(), we ensure that the toggle state remains synchronized.
   // ... selectively deletes ONLY generated line numbers with the format "n› "
-  const leftCol = document.getElementById('left-panel');
-  const rightCol = document.getElementById('right-panel');
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');
   
-  const removeNum = cell => {
-    const lines = getLinesFromCell(cell);
-    // RegEx:^\d+›\s* searches at the beginning of the line for numbers followed by › and a space
+  const removeNum = panel => {
+    const lines = getLinesFromPanel(panel);
+    // searches at the beginning of the line for numbers followed by › and a space ...
     const clean = lines.map(l => l.replace(/^\d+› /, '')).join('\n');
-    cell.innerText = clean;
+    panel.innerText = clean;
   };
-  removeNum(leftCol);
-  removeNum(rightCol);
-  // Reset status and button text
+  removeNum(left);
+  removeNum(right);
+  
   lineNumbersActive = false;
-  const btn = document.getElementById('toggle-lines-btn');
-  if (btn) {
-    btn.innerText = "Line numbers: OFF";
-    btn.classList.remove('active');
-  }
+  document.getElementById('toggle-lines-cb').checked = false;
+  updateStatusBar();
+}
+
+	
+function stripHighlights() {
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');
+  // Remove HTML markup and keep plain text using our helper function
+  left.innerText = getRawTextFrom(left);
+  right.innerText = getRawTextFrom(right);
+  updateStatusBar();
+}
+
+	
+function highlightDiff() {
+  // stripNumbers() is no longer called here, as line numbers are preserved since version 0.6.
+
+  const left = document.getElementById('left-panel');
+  const right = document.getElementById('right-panel');
+
+  // Remove previous HTML markers (<mark>)
+  left.innerText = getRawTextFrom(left);
+  right.innerText = getRawTextFrom(right);
+
+  // Helper function to separate the prefix from the actual content
+  const parseLine = line => {
+    if (lineNumbersActive) {
+      // We only split off the "n› " prefix if numbering is active.
+      const match = line.match(/^(\d+› )(.*)/);
+      return {
+        prefix: match ? match[1] : '',
+        content: match ? match[2] : line
+      };
+    }
+    // When not active, the prefix for the line number is empty ...
+    return { prefix: '', content: line };
+  };
+
+  const linesL = getLinesFromPanel(left).map(parseLine);
+  const linesR = getLinesFromPanel(right).map(parseLine);
+
+  // Helper for comparing a column against the target column
+  const processPanel = (sourceLines, targetLines, isLeftPanel) => {
+    return sourceLines.map((item, idx) => {
+      const targetItem = targetLines[idx] || null;
+
+      // If the lines differ ...
+      if (targetItem !== null && item.content !== targetItem.content) {
+        const strLeft = isLeftPanel ? item.content : targetItem.content;
+        const strRight = isLeftPanel ? targetItem.content : item.content;
+
+        const inlineResult = diffInline(strLeft, strRight);
+        const highlighted = isLeftPanel ? inlineResult.left : inlineResult.right;
+
+        // Outputs the line number (if available) before the marker.
+        return escapeHtml(item.prefix) + highlighted;
+      }
+      // In the event of identity or a missing corresponding line: text stays unchanged ...
+      return escapeHtml(item.prefix + item.content);
+    }).join('\n');
+  };
+
+  // Process both panels with the correct flag.
+  left.innerHTML = processPanel(linesL, linesR, true);
+  right.innerHTML = processPanel(linesR, linesL, false);
+
   // Update counter
+  const totalDiffs = document.querySelectorAll('mark.mod').length;
+
   updateStatusBar();
 }
 
@@ -460,201 +647,66 @@ function findLongestCommonSubstr(str1, str2) {
 }
 
 
-function highlightDiff() {
-  // stripNumbers() is no longer called here, as line numbers have been ignored since version 0.6.
-
-  const leftCol = document.getElementById('left-panel');
-  const rightCol = document.getElementById('right-panel');
-
-  // Remove previous HTML markers (<mark>)
-  leftCol.innerText = leftCol.innerText;
-  rightCol.innerText = rightCol.innerText;
-
-  // Helper function to separate the prefix from the actual content
-  const parseLine = line => {
-    if (lineNumbersActive) {
-      // We only split off the "n› " prefix if numbering is active.
-      const match = line.match(/^(\d+› )(.*)/);
-      return {
-        prefix: match ? match[1] : '',
-        content: match ? match[2] : line
-      };
-    }
-    // When not active, the prefix for the line number is empty ...
-    return { prefix: '', content: line };
-  };
-
-  const linesL = getLinesFromCell(leftCol).map(parseLine);
-  const linesR = getLinesFromCell(rightCol).map(parseLine);
-
-  // Helper for comparing a column against the target column
-  const processColumn = (sourceLines, targetLines, isLeftColumn) => {
-    return sourceLines.map((item, idx) => {
-      const targetItem = targetLines[idx] || null;
-
-      // If the lines differ ...
-      if (targetItem !== null && item.content !== targetItem.content) {
-        const strLeft = isLeftColumn ? item.content : targetItem.content;
-        const strRight = isLeftColumn ? targetItem.content : item.content;
-
-        const inlineResult = diffInline(strLeft, strRight);
-        const highlighted = isLeftColumn ? inlineResult.left : inlineResult.right;
-
-        // Outputs the line number (if available) before the marker.
-        return escapeHtml(item.prefix) + highlighted;
-      }
-      // In the event of identity or a missing corresponding line: text stays unchanged ...
-      return escapeHtml(item.prefix + item.content);
-    }).join('\n');
-  };
-
-  // Process both columns with the correct flag.
-  leftCol.innerHTML = processColumn(linesL, linesR, true);
-  rightCol.innerHTML = processColumn(linesR, linesL, false);
-
-  // Update counter
-  const totalDiffs = document.querySelectorAll('mark.mod').length;
-
-  updateStatusBar();
-}
-
-
 function escapeHtml(str) {
 // Helper for diffInline() and highLightDiff()
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-
-function toggleHighlight() {
-  const btn = document.getElementById('toggle-highlight-btn');
-
-  if (highlightingActive) {
-    stripHighlights();
-    highlightingActive = false;
-    btn.innerText = "Highlight differences: OFF";
-    btn.classList.remove('active');
-  } else {
-    highlightDiff();
-    highlightingActive = true;
-    btn.innerText = "Highlight differences: ON";
-    btn.classList.add('active');
-  }
+/*	
+function getRawTextFrom(panel) {
+  // 1. Hole den inneren HTML-Inhalt des Panels
+  let uglyText = panel.innerHTML;
+  // 2. Falls noch Highlights aktiv sind, diese temporär bereinigen
+  uglyText = uglyText.replace(/<\/?mark[^>]*>/gi, '');
+  // 3. Typische Browser-Div-Container (Enter-Erzeugung) normalisieren
+  uglyText = uglyText.replace(/<\/div>\s*<div>/gi, '\n');
+  uglyText = uglyText.replace(/<\/?div>/gi, '');
+  // 4. Verbleibende <br>-Tags durch echte Zeilenumbrüche ersetzen
+  uglyText = uglyText.replace(/<br\s*[\/]?>/gi, '\n');
+  // 5. HTML-Entities (&amp;, &lt; etc.) sauber zu echten Zeichen decodieren,
+  // damit escapeHtml() sie später nicht doppelt kodiert.
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = uglyText;
+  return tempDiv.innerText || tempDiv.textContent || '';
+}
+*/
+function getRawTextFrom(panel) {
+  // Der Browser konvertiert block-elemente (div, br) automatisch in \n.
+  // Evtl. werden durch <br><div>Kombinationen Leerzeilen verdoppelt.
+  return panel.innerText;
 }
 
 
-function stripHighlights() {
-  const leftCol = document.getElementById('left-panel');
-  const rightCol = document.getElementById('right-panel');
-
-  // Remove HTML markup and keep plain text
-  leftCol.innerText = leftCol.innerText;
-  rightCol.innerText = rightCol.innerText;
-
-  updateStatusBar();
+function getLinesFromPanel(panel) {
+// Helper function: Splits plain text line by line
+  const rawText = getRawTextFrom(panel);
+  // Text an allen gängigen Zeilenumbrüchen (\n oder \r\n) aufsplitten 
+  return rawText.replace(/\r\n/g, '\n').split('\n');
 }
 
-
-function saveState() {
-// ... saves the current DOM state
-  const docHTML = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-  const blob = new Blob([docHTML], { type: 'text/html' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = location.pathname.split('/').pop() || 'DuoDiff.html';
-  a.click();
-  URL.revokeObjectURL(a.href);
+	
+function updateStatusBar() {
+// comfort function for complete status reset
+  updateLineCount('left');
+  updateLineCount('right');
+  updateHighlightStatus();
 }
 
-// Intercept Ctrl+S ...
-document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault();
-    saveState();
+	
+function updateLineCount(side,count) {
+  if (count === undefined ) {
+    const panel = document.getElementById(`${side}-panel`);
+    count = getLinesFromPanel(panel).length;
   }
-});
+  document.getElementById(`${side}-line-count`).innerText = `Lines: ${count}`;
+}  
 
-
-function getFileExtension(filename) {
-  const parts = filename.split('.');
-  if (parts.length > 1) {
-    return parts[parts.length - 1].toLowerCase();
-  }
-  return '';
+	
+function updateHighlightStatus() {
+  const highlights = document.querySelectorAll('mark.mod').length;
+  document.getElementById('mod-count').innerText = `Highlights: ${highlights}`;
 }
 
-
-function isAllowedTextFile(filename, fileSize) {
-  // Check file size
-  if (fileSize > MAX_FILE_SIZE) {
-    alert(`File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)} MB.`);
-    return false;
-  }
-  const extension = getFileExtension(filename);
-  // Check if extension is in allowed list
-  if (!extension || !ALLOWED_TEXT_EXTENSIONS.includes(extension)) {
-    const proceed = confirm(
-      `File extension ".${extension}" is not in the list of common text file extension.\n\n` +
-      `Continue anyway? (The file will be read as plain text.)`
-    );
-    return proceed;
-  }
-  return true;
-}
-
-
-document.addEventListener('dragover', function (e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
-});
-
-
-document.addEventListener('drop', function (e) {
-  e.preventDefault();
-
-  const files = e.dataTransfer.files;
-  if (!files || files.length === 0) return;
-
-  const file = files[0];
-
-  // Validate file before reading
-  if (!isAllowedTextFile(file.name, file.size)) {
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = function (event) {
-    const text = event.target.result;
-    const isLeft = e.clientX < window.innerWidth / 2;
-    const side = isLeft ? 'left' : 'right';
-    const targetCol = document.getElementById(`${side}-panel`);
-
-    targetCol.innerText = text;
-
-    // Assignment of the drop zone based on the screen half
-    const count = lineNumbersActive ? renumberLines(targetCol) : undefined;
-    updateLineCount(side, count);
-
-    // If highlighting is active, turn it off
-    if (highlightingActive) {
-      const btn = document.getElementById('toggle-highlight-btn');
-      stripHighlights();
-      highlightingActive = false;
-      btn.innerText = "Highlight differences: OFF";
-      btn.classList.remove('active');
-    } else {
-      updateHighlightStatus();
-    }
-  };
-  reader.onerror = function () {
-    alert('Error reading file. Make sure it is a valid text file.');
-  };
-
-  reader.readAsText(file);
-});
-
-// Initialize status bar on page load
-updateStatusBar();
 </script>
 
 </body>
