@@ -153,7 +153,7 @@ button:hover { background: #1177bb; }
   width: 100%;
   table-layout: fixed;
   border-spacing: 10px 0; /* Ersetzt den Grid-Gap */
-	margin-left:0;
+  margin-left:0;
 }
 
 .text-panel {
@@ -462,7 +462,7 @@ function renumberBoth() {
 function renumberLines(panel) {
 // ... assigns line numbers in the format "1› ", "2› ", "3› "
 // and returns the number of lines processed.
-  const lines = getLinesFromPanel(panel);
+  const lines = getLinesFrom(panel);
   const renumbered = lines.map((line, index) => {
     // Entfernt "Zahl + › + 1 Leerzeichen" am Anfang der Zeile
     const cleanLine = line.replace(/^\d+› /, '');
@@ -481,7 +481,7 @@ function stripNumbers() {
   const right = document.getElementById('right-panel');
   
   const removeNum = panel => {
-    const lines = getLinesFromPanel(panel);
+    const lines = getLinesFrom(panel);
     // searches at the beginning of the line for numbers followed by › and a space ...
     const clean = lines.map(l => l.replace(/^\d+› /, '')).join('\n');
     panel.innerText = clean;
@@ -508,12 +508,12 @@ function stripHighlights() {
 function highlightDiff() {
   // stripNumbers() is no longer called here, as line numbers are preserved since version 0.6.
 
-  const left = document.getElementById('left-panel');
-  const right = document.getElementById('right-panel');
+  const leftPanel = document.getElementById('left-panel');
+  const rightPanel = document.getElementById('right-panel');
 
   // Remove previous HTML markers (<mark>)
-  left.innerText = getRawTextFrom(left);
-  right.innerText = getRawTextFrom(right);
+  leftPanel.innerText = getRawTextFrom(leftPanel);
+  rightPanel.innerText = getRawTextFrom(rightPanel);
 
   // Helper function to separate the prefix from the actual content
   const parseLine = line => {
@@ -529,8 +529,8 @@ function highlightDiff() {
     return { prefix: '', content: line };
   };
 
-  const linesL = getLinesFromPanel(left).map(parseLine);
-  const linesR = getLinesFromPanel(right).map(parseLine);
+  const linesL = getLinesFrom(leftPanel).map(parseLine);
+  const linesR = getLinesFrom(rightPanel).map(parseLine);
 
   // Helper for comparing a column against the target column
   const processPanel = (sourceLines, targetLines, isLeftPanel) => {
@@ -554,8 +554,8 @@ function highlightDiff() {
   };
 
   // Process both panels with the correct flag.
-  left.innerHTML = processPanel(linesL, linesR, true);
-  right.innerHTML = processPanel(linesR, linesL, false);
+  leftPanel.innerHTML = processPanel(linesL, linesR, true);
+  rightPanel.innerHTML = processPanel(linesR, linesL, false);
 
   // Update counter
   const totalDiffs = document.querySelectorAll('mark.mod').length;
@@ -684,7 +684,7 @@ function getRawTextFrom(panel) {
 */
 
 
-function getLinesFromPanel(panel) {
+function getLinesFrom(panel) {
 // Helper function: Splits plain text line by line
   const rawText = getRawTextFrom(panel);
   // Text an allen gängigen Zeilenumbrüchen (\n oder \r\n) aufsplitten 
@@ -703,7 +703,7 @@ function updateStatusBar() {
 function updateLineCount(side,count) {
   if (count === undefined ) {
     const panel = document.getElementById(`${side}-panel`);
-    count = getLinesFromPanel(panel).length;
+    count = getLinesFrom(panel).length;
   }
   document.getElementById(`${side}-line-count`).innerText = `Lines: ${count}`;
 }  
