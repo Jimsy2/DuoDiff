@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v0.9d - Differences highlighter for text</title>
+<title>DuoDiff v1.0 - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -80,6 +80,11 @@ button {
 
 button:hover { background: #1177bb; }
 
+#check-btn {
+  min-width: 110px; /* Gives the button a fixed width so that it doesn't wobble. */
+  text-align: center;
+}
+	
 .toolbar-checkbox {
   display: flex;
   align-items: center;
@@ -203,9 +208,10 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v0.9d</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v1.0</div>
   <button onclick="clearPanels()">Clear panels</button>
   <div class="toolbar-spacer"></div>
+  <button onclick="saveState()">Save current state (Ctrl+S)</button>
   <label class="toolbar-checkbox">
     <input type="checkbox" id="toggle-wrap-cb" onchange="toggleWordWrap()" checked>
     Word wrap
@@ -218,7 +224,7 @@ mark.mod {
     <input type="checkbox" id="toggle-highlight-cb" onchange="toggleHighlight()">
     Highlight differences
   </label>
-  <button onclick="saveState()">Save current state (Ctrl+S)</button>
+  <button onclick="checkDiff()" id="check-btn">Diff-Check</button>
 </div>
 
 <div class="status-bar">
@@ -287,8 +293,9 @@ function clearPanels() {
   if (lineNumbersActive) {
     lineNumbersActive = false;
     document.getElementById('toggle-lines-cb').checked = false;
-  }  
+  }
   updateStatusBar();
+  updateCheckButtonText();
 }
 	
 
@@ -337,12 +344,29 @@ function toggleHighlight() {
   if (highlightingActive) {
     stripHighlights();
     highlightingActive = false;
+    document.getElementById('toggle-highlight-cb').checked = false;
   } else {
     highlightDiff();
     highlightingActive = true;
+    document.getElementById('toggle-highlight-cb').checked = true;
   }
+  updateCheckButtonText(); // <-- Aktualisiert den Button-Text
 }
 
+function checkDiff() {
+  highlightingActive = true;
+  document.getElementById('toggle-highlight-cb').checked = true;
+  highlightDiff();
+  updateCheckButtonText(); // <-- Aktualisiert den Button-Text
+}
+
+		
+function updateCheckButtonText() {
+  const btn = document.getElementById('check-btn');
+  if (btn) {
+    btn.innerText = highlightingActive ? ' Re-Check' : 'Diff-Check';
+  }
+}
 //
 // EVENT-LISTENERS and associated functions
 //
@@ -407,7 +431,7 @@ document.addEventListener('drop', function (e) {
       highlightingActive = false;
       document.getElementById('toggle-highlight-cb').checked = false;
     } else {
-      updateHighlightStatus();
+      updateHighlightCount();
     }
   };
   reader.onerror = function () {
@@ -696,7 +720,7 @@ function updateStatusBar() {
 // comfort function for complete status reset
   updateLineCount('left');
   updateLineCount('right');
-  updateHighlightStatus();
+  updateHighlightCount();
 }
 
 	
@@ -709,7 +733,7 @@ function updateLineCount(side,count) {
 }  
 
 	
-function updateHighlightStatus() {
+function updateHighlightCount() {
   const highlights = document.querySelectorAll('mark.mod').length;
   document.getElementById('mod-count').innerText = `Highlights: ${highlights}`;
 }
