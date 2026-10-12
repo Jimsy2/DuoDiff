@@ -652,8 +652,20 @@ function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/*	
 function getRawTextFrom(panel) {
+// Centralized wrapper to extract normalized raw text from a panel.
+  return panel.innerText;
+}
+/* NOTE: This torso function serves as an abstraction layer to isolate 
+// contenteditable browser quirks regarding HTML entity handling and DIV elements
+// inserted in addition to line breaks. If browser engines change 
+// how editable text/markup is extracted, global adjustments can be made here.
+// For example, when changing the panel-frame from `display:table` to 
+// `display:grid`, the following fixes are required:
+	
+function getRawTextFrom(panel) {
+  // Der Browser konvertiert block-elemente (div, br) automatisch in \n.
+  // Evtl. werden durch <br><div>Kombinationen Leerzeilen verdoppelt.
   // 1. Hole den inneren HTML-Inhalt des Panels
   let uglyText = panel.innerHTML;
   // 2. Falls noch Highlights aktiv sind, diese temporär bereinigen
@@ -670,11 +682,6 @@ function getRawTextFrom(panel) {
   return tempDiv.innerText || tempDiv.textContent || '';
 }
 */
-function getRawTextFrom(panel) {
-  // Der Browser konvertiert block-elemente (div, br) automatisch in \n.
-  // Evtl. werden durch <br><div>Kombinationen Leerzeilen verdoppelt.
-  return panel.innerText;
-}
 
 
 function getLinesFromPanel(panel) {
