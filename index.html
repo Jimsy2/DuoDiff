@@ -319,9 +319,10 @@ function handleTextCleanup(selectElement) {
   const action = selectElement.value;
   if (!action) return;
 
-  const wereLinesActive = lineNumbersActive;
-  if (wereLinesActive) {
-    toggleLineNumbers();
+  const wasLinesNumON = lineNumbersActive;
+  const wasHighlightON = highlightingActive; // <-- remember whether it was previously highlighted
+  if (wasLinesNumON) {
+    toggleLineNumbers(); // Also switches off highlighting if necessary.
   }
   // Go through all text panels in the editor
   const panels = document.querySelectorAll('.text-panel');
@@ -348,17 +349,23 @@ function handleTextCleanup(selectElement) {
     }
     panel.innerText = text;
   });
-  // Reset the dropdown
-  selectElement.selectedIndex = 0;
 
+  // Reset the dropdown to menu title
+  selectElement.selectedIndex = 0;
   // Re-enable line numbers if they were previously on
-  if (wereLinesActive) {
+  if (wasLinesNumON) {
     toggleLineNumbers();
   }
-
-  // If highlighting is active, update diff
-  if (highlightingActive) {
-    checkDiff();
+  // Restore highlighting if it was active before cleanup
+  if (wasHighlightON) {
+    if (typeof checkDiff === 'function') {
+      checkDiff();
+    } else if (typeof toggleHighlight === 'function') {
+      toggleHighlight();
+    }
+  } else {
+    // Nothing to re-highlight — update counters/status
+    if (typeof updateStatusBar === 'function') updateStatusBar();
   }
 }
 
