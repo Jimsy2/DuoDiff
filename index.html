@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v1.1 - Differences highlighter for text</title>
+<title>DuoDiff v1.2 - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -122,32 +122,41 @@ button:hover { background: #1177bb; }
   bottom: 0;
   z-index: 1000;
   height: 40px;
-  display: flex;
+  display: grid;
+  /* Left panel (0-50%) is divided into two 1fr halves (0-25% and 25-50%). 
+     Right panel (50-100%) gets 2fr (takes up the entire right half). */
+  grid-template-columns: 1fr 1fr 2fr;
   align-items: center;
+  padding: 4px 12px;
+  font-size: 14px; color: #aaa;
   background-color: var(--panel-bg);
   border-top: 1px solid var(--border-color);
-  color: #aaa;
-  font-size: 14px;
 }
 
-.status-item {
-  flex: 1;
-  padding: 0 12px;
-  white-space: nowrap;
+/* Case 1: Left panel info (left-aligned) */
+#status-item1 {
+  grid-column: 1;
+  justify-self: start;
 }
 
-.status-item.left {
-  text-align: left;
+/* Case 2: Highlights in the middle of the left panel */
+#status-item2 {
+  grid-column: 2;
+  justify-self: start;
 }
 
-.status-item.middle {
-  text-align: center;
+/* Case 3: Right panel info - exactly under the left edge of the right panel */
+#status-item3 {
+  grid-column: 3;
+  justify-self: start; /* Aligns it to the left edge of its grid column */
 }
 
-.status-item.right {
-  text-align: right;
+/* Case 4: Language switcher on the far right */
+#status-item4 {
+  grid-column: 3;
+  justify-self: end;
 }
-
+	
 .diff-count {
   margin-left: 10px;
   font-size: 13px;
@@ -216,7 +225,7 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v1.1</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v1.2</div>
   <button onclick="clearPanels()">Clear panels</button>
   <div class="toolbar-spacer"></div>
   <button onclick="saveState()">Save state</button>
@@ -244,17 +253,21 @@ mark.mod {
 </div>
 
 <div class="status-bar">
-  <div class="status-item left">
+  <div id="status-item1">
     <span id="left-line-count">Lines: 0</span>
   </div>
-  <div class="status-item middle">
+  <div id="status-item2">
     <span id="mod-count">Highlights: 0</span>
   </div>
-  <div class="status-item right">
+  <div id="status-item3">
     <span id="right-line-count">Lines: 0</span>
   </div>
+  <div id="status-item4">
+    <button id="lang-toggle-btn" class="lang-pill" onclick="toggleLocale()" title="Sprache wechseln / Switch language">
+      <span class="lang-de">DE</span> / <span class="lang-en">EN</span>
+    </button>
+  </div>
 </div>
-
 
 <div class="panel-frame">
   <div id="left-panel" class="text-panel" contenteditable="true" spellcheck="false">Left panel
@@ -809,6 +822,194 @@ function updateHighlightCount() {
   document.getElementById('mod-count').innerText = `Highlights: ${highlights}`;
 }
 
+
+// --- Localization / i18n ---
+
+function toggleLocale() {
+  const current = document.documentElement.lang || 'en';
+  const next = current === 'de' ? 'en' : 'de';
+  
+  localStorage.setItem('duodiff_locale', next);
+  applyLocale(next);
+  updateLangButtonUI(next);
+}
+
+function updateLangButtonUI(locale) {
+  const btn = document.getElementById('lang-toggle-btn');
+  if (btn) {
+    btn.setAttribute('data-lang', locale);
+  }
+}
+
+const i18n = {
+  en: {
+    toolbarTitle: 'DuoDiff v1.2',
+    clearPanels: 'Clear panels',
+    saveState: 'Save state',
+    cleanupPlaceholder: 'Clean up text ...',
+    cleanupOptions: {
+      'replace-nbsp': 'Replace non-breaking spaces',
+      'tabs-2': 'Replace tabs with 2 spaces',
+      'tabs-4': 'Replace tabs with 4 spaces',
+      'tabs-8': 'Replace tabs with 8 spaces',
+      'trim-trailing': 'Remove trailing whitespace'
+    },
+    wordWrap: 'Word wrap',
+    lineNumbers: 'Line numbers',
+    highlightDifferences: 'Highlight differences',
+    checkDiff: 'Diff-Check',
+    reCheck: 'Re-Check',
+    leftPanelPlaceholder: 'Left panel\nDrag & drop a text file here\nor paste/edit text directly',
+    rightPanelPlaceholder: 'Right panel\nDrag & drop a text file here\nor paste/edit text directly',
+    linesLabel: 'Lines',
+    highlightsLabel: 'Highlights'
+  },
+  de: {
+    toolbarTitle: 'DuoDiff v1.2',
+    clearPanels: 'Panel leeren',
+    saveState: 'Speichern',
+    cleanupPlaceholder: 'Text bereinigen ...',
+    cleanupOptions: {
+      'replace-nbsp': 'Geschützte Leerzeichen ersetzen',
+      'tabs-2': 'Tabs durch 2 Leerzeichen ersetzen',
+      'tabs-4': 'Tabs durch 4 Leerzeichen ersetzen',
+      'tabs-8': 'Tabs durch 8 Leerzeichen ersetzen',
+      'trim-trailing': 'Nachgestellte Leerzeichen entfernen'
+    },
+    wordWrap: 'Zeilenumbruch',
+    lineNumbers: 'Zeilennummern',
+    highlightDifferences: 'Unterschiede hervorheben',
+    checkDiff: 'Diff-Prüfung',
+    reCheck: 'Erneut prüfen',
+    leftPanelPlaceholder: 'Linkes Panel\nDatei hierhin ziehen\noder Text einfügen/bearbeiten',
+    rightPanelPlaceholder: 'Rechtes Panel\nDatei hierhin ziehen\noder Text einfügen/bearbeiten',
+    linesLabel: 'Zeilen',
+    highlightsLabel: 'Markierungen'
+  }
+};
+
+function detectLocale() {
+  const stored = localStorage.getItem('duodiff_locale');
+  if (stored) return stored;
+  const nav = (navigator.languages && navigator.languages.length) ? navigator.languages[0] : (navigator.language || 'en');
+  return nav.toLowerCase().startsWith('de') ? 'de' : 'en';
+}
+
+function ensureLabelSpan(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return null;
+  const label = input.closest('label');
+  if (!label) return null;
+  let span = label.querySelector('.label-text');
+  if (!span) {
+    // create a span and move any trailing text nodes into it
+    span = document.createElement('span');
+    span.className = 'label-text';
+    // Remove existing text nodes (not the input) and append their text to the span
+    const nodes = Array.from(label.childNodes);
+    for (const n of nodes) {
+      if (n.nodeType === Node.TEXT_NODE && n.textContent.trim()) {
+        // accumulate text and remove node
+        span.textContent = (span.textContent ? span.textContent + ' ' : '') + n.textContent.trim();
+        label.removeChild(n);
+      }
+    }
+    label.appendChild(span);
+  }
+  return span;
+}
+
+function setSelectPlaceholder(selectEl, placeholderText) {
+  if (!selectEl) return;
+  // Ensure first option is the placeholder
+  if (selectEl.options.length === 0 || selectEl.options[0].value !== '') {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.disabled = true;
+    opt.selected = true;
+    selectEl.insertBefore(opt, selectEl.firstChild);
+  }
+  selectEl.options[0].textContent = placeholderText;
+}
+
+function applyLocale(locale) {
+  const t = i18n[locale] || i18n.en;
+  document.documentElement.lang = locale;
+
+  // Toolbar title (keep the bold DuoDiff name)
+  const titleEl = document.querySelector('.toolbar-title');
+  if (titleEl) titleEl.innerHTML = `<b>DuoDiff</b> ${t.toolbarTitle.split(' ').pop()}`;
+
+  // Buttons: find by onclick or add IDs in markup for more robust selection
+  const clearBtn = document.querySelector('button[onclick="clearPanels()"]');
+  if (clearBtn) clearBtn.textContent = t.clearPanels;
+
+  const saveBtn = document.querySelector('button[onclick="saveState()"]');
+  if (saveBtn) saveBtn.textContent = t.saveState;
+
+  // Cleanup dropdown
+  const cleanup = document.getElementById('cleanup-dropdown');
+  if (cleanup) {
+    setSelectPlaceholder(cleanup, t.cleanupPlaceholder);
+    // update option texts by value
+    Array.from(cleanup.options).forEach(opt => {
+      if (opt.value && t.cleanupOptions[opt.value]) {
+        opt.textContent = t.cleanupOptions[opt.value];
+      }
+    });
+  }
+
+  // Checkboxes labels (ensure span.label-text exists)
+  const wrapSpan = ensureLabelSpan('toggle-wrap-cb');
+  if (wrapSpan) wrapSpan.textContent = ' ' + t.wordWrap;
+  const linesSpan = ensureLabelSpan('toggle-lines-cb');
+  if (linesSpan) linesSpan.textContent = ' ' + t.lineNumbers;
+  const highlightSpan = ensureLabelSpan('toggle-highlight-cb');
+  if (highlightSpan) highlightSpan.textContent = ' ' + t.highlightDifferences;
+
+  // Check button text (check vs re-check)
+  function setCheckButtonText() {
+    const btn = document.getElementById('check-btn');
+    if (!btn) return;
+    btn.textContent = highlightingActive ? t.reCheck : t.checkDiff;
+  }
+  // expose updateCheckButtonText if your app uses it elsewhere
+  window.updateCheckButtonText = setCheckButtonText;
+  setCheckButtonText();
+
+  // Status bar labels — preserve numbers
+  const leftCount = document.getElementById('left-line-count');
+  if (leftCount) {
+    const n = parseInt(leftCount.textContent.replace(/\D/g, '')) || 0;
+    leftCount.textContent = `${t.linesLabel}: ${n}`;
+  }
+  const rightCount = document.getElementById('right-line-count');
+  if (rightCount) {
+    const n = parseInt(rightCount.textContent.replace(/\D/g, '')) || 0;
+    rightCount.textContent = `${t.linesLabel}: ${n}`;
+  }
+  const modCount = document.getElementById('mod-count');
+  if (modCount) {
+    const n = parseInt(modCount.textContent.replace(/\D/g, '')) || 0;
+    modCount.textContent = `${t.highlightsLabel}: ${n}`;
+  }
+
+  // Panel default placeholders — only replace if panels still contain the original English placeholders
+  const leftPanel = document.getElementById('left-panel');
+  const rightPanel = document.getElementById('right-panel');
+  if (leftPanel && leftPanel.textContent.trim().startsWith('Left panel')) {
+    leftPanel.innerText = t.leftPanelPlaceholder;
+  }
+  if (rightPanel && rightPanel.textContent.trim().startsWith('Right panel')) {
+    rightPanel.innerText = t.rightPanelPlaceholder;
+  }
+}
+
+// Run localization on load
+document.addEventListener('DOMContentLoaded', () => {
+  const locale = detectLocale();
+  applyLocale(locale);
+});
 </script>
 
 </body>
