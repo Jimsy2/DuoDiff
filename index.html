@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>DuoDiff v1.0 - Differences highlighter for text</title>
+<title>DuoDiff v1.1 - Differences highlighter for text</title>
 <meta name="description" content="DuoDiff is single-file html-page comparing two text files and highlighting the differences.">
 <meta name="copyright" content="Copyright (c) 2026 Dirk Eismann">
 <meta name="license" content="GPL-2.0-only">
@@ -79,6 +79,14 @@ button {
 }
 
 button:hover { background: #1177bb; }
+
+#cleanup-dropdown {
+  background: var(--accent-color);
+  color: #fff;
+  padding: 6px 14px;
+  font-size: 16px;
+  border-radius: 4px;
+}
 
 #check-btn {
   min-width: 110px; /* Gives the button a fixed width so that it doesn't wobble. */
@@ -208,10 +216,18 @@ mark.mod {
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title"><b>DuoDiff</b> v1.0</div>
+  <div class="toolbar-title"><b>DuoDiff</b> v1.1</div>
   <button onclick="clearPanels()">Clear panels</button>
   <div class="toolbar-spacer"></div>
-  <button onclick="saveState()">Save current state (Ctrl+S)</button>
+  <button onclick="saveState()">Save state</button>
+  <select id="cleanup-dropdown" onchange="handleTextCleanup(this)" title="Text cleanup tools">
+    <option value="" disabled selected>Clean up text ...</option>
+    <option value="replace-nbsp">Replace non-breaking spaces</option>
+    <option value="tabs-2">Replace tabs with 2 spaces</option>
+    <option value="tabs-4">Replace tabs with 4 spaces</option>
+    <option value="tabs-8">Replace tabs with 8 spaces</option>
+    <option value="trim-trailing">Remove trailing whitespace</option>
+  </select>
   <label class="toolbar-checkbox">
     <input type="checkbox" id="toggle-wrap-cb" onchange="toggleWordWrap()" checked>
     Word wrap
@@ -297,8 +313,46 @@ function clearPanels() {
   updateStatusBar();
   updateCheckButtonText();
 }
-	
 
+	
+function handleTextCleanup(selectElement) {
+  const action = selectElement.value;
+  if (!action) return;
+  // Go through all text panels in the editor
+  const panels = document.querySelectorAll('.text-panel');
+
+  panels.forEach(panel => {
+    let text = panel.innerText;
+    switch (action) {
+      case 'replace-nbsp':
+        // Ersetzt sowohl den HTML-Code &nbsp; als auch das Unicode-Zeichen \u00a0 / \xA0
+        text = text.replace(/&nbsp;/gi, ' ').replace(/\u00a0/g, ' ');
+        break;
+      case 'tabs-2':
+        text = text.replace(/\t/g, '  ');
+        break;
+      case 'tabs-4':
+        text = text.replace(/\t/g, '    ');
+        break;
+      case 'tabs-8':
+        text = text.replace(/\t/g, '        ');
+        break;
+      case 'trim-trailing':
+        // Entfernt Leerzeichen und Tabs am Ende jeder Zeile
+        text = text.split('\n').map(line => line.replace(/[ \t]+$/, '')).join('\n');
+        break;
+    }
+    panel.innerText = text;
+  });
+  // Reset the dropdown back to the placeholder after execution
+  selectElement.value = "";
+  // If highlighting is active, update diff
+    if (typeof highlightingActive !== 'undefined' && highlightingActive) {
+      checkDiff();
+    }
+}
+
+	
 function toggleWordWrap() {
   const leftPanel = document.getElementById('left-panel');
   const rightPanel = document.getElementById('right-panel');
