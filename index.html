@@ -318,6 +318,11 @@ function clearPanels() {
 function handleTextCleanup(selectElement) {
   const action = selectElement.value;
   if (!action) return;
+
+  const wereLinesActive = lineNumbersActive;
+  if (wereLinesActive) {
+    toggleLineNumbers();
+  }
   // Go through all text panels in the editor
   const panels = document.querySelectorAll('.text-panel');
 
@@ -325,7 +330,6 @@ function handleTextCleanup(selectElement) {
     let text = panel.innerText;
     switch (action) {
       case 'replace-nbsp':
-        // Ersetzt sowohl den HTML-Code &nbsp; als auch das Unicode-Zeichen \u00a0 / \xA0
         text = text.replace(/&nbsp;/gi, ' ').replace(/\u00a0/g, ' ');
         break;
       case 'tabs-2':
@@ -338,18 +342,24 @@ function handleTextCleanup(selectElement) {
         text = text.replace(/\t/g, '        ');
         break;
       case 'trim-trailing':
-        // Entfernt Leerzeichen und Tabs am Ende jeder Zeile
+        // Removes spaces and tabs from the end of each line
         text = text.split('\n').map(line => line.replace(/[ \t]+$/, '')).join('\n');
         break;
     }
     panel.innerText = text;
   });
-  // Reset the dropdown back to the placeholder after execution
-  selectElement.value = "";
+  // Reset the dropdown
+  selectElement.selectedIndex = 0;
+
+  // Re-enable line numbers if they were previously on
+  if (wereLinesActive) {
+    toggleLineNumbers();
+  }
+
   // If highlighting is active, update diff
-    if (typeof highlightingActive !== 'undefined' && highlightingActive) {
-      checkDiff();
-    }
+  if (highlightingActive) {
+    checkDiff();
+  }
 }
 
 	
